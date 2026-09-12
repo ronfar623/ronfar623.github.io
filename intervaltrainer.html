@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interval Trainer - Ear Training Game</title>
+<style>
+  :root {
+    --bg1:#141830; --bg2:#0b0e1c;
+    --panel:#1b2140; --panel2:#232b52;
+    --text:#eef1ff; --muted:#9aa3c7;
+    --accent:#7c6cff; --accent2:#4fd1c5;
+    --good:#3ddc84; --bad:#ff5c7a;
+    --key-w:#f4f6ff; --key-w2:#c9d0ea; --key-b:#1a1f38;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:linear-gradient(160deg, var(--bg1), var(--bg2));
+    color:var(--text); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px;
+  }
+  header { text-align:center; }
+  h1 { font-size:2rem; letter-spacing:1px; }
+  h1 span { color:var(--accent2); }
+  .tagline { color:var(--muted); margin-top:4px; font-size:.95rem; }
+
+  .layout {
+    display:grid; grid-template-columns:300px 1fr; gap:18px;
+    width:100%; max-width:980px;
+  }
+  @media (max-width:820px){ .layout { grid-template-columns:1fr; } }
+
+  .panel {
+    background:var(--panel); border:1px solid #2c3563;
+    border-radius:14px; padding:18px;
+  }
+  .panel h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:2px;
+    color:var(--muted); margin-bottom:12px; }
+
+  label { display:block; font-size:.85rem; color:var(--muted); margin:10px 0 5px; }
+  select, input[type=range] {
+    width:100%; background:var(--panel2); color:var(--text);
+    border:1px solid #3a4478; border-radius:8px; padding:8px; font-size:.95rem;
+  }
+  input[type=range]{ padding:0; height:26px; }
+
+  .hint {
+    font-size:.72rem; color:var(--muted); line-height:1.45;
+    margin-top:6px; font-style:italic;
+  }
+
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px; }
+  .stat { background:var(--panel2); border-radius:10px; padding:8px 4px; text-align:center; }
+  .stat .v { font-size:1.15rem; font-weight:700; }
+  .stat .k { font-size:.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+  .stage { display:flex; flex-direction:column; gap:14px; }
+
+  .status {
+    text-align:center; font-size:1.05rem; min-height:2.6em;
+    display:flex; align-items:center; justify-content:center; padding:6px;
+  }
+  /* Content lives inside a single child so normal inline spacing applies
+     (raw text directly in a flex container gets split into anonymous
+     flex items whose surrounding spaces are stripped). */
+  .status-text { display:block; }
+  .status .dot {
+    display:inline-block; width:10px; height:10px; border-radius:50%;
+    background:var(--accent2); margin-right:8px; animation:pulse 1s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+  .piano {
+    position:relative; height:130px; background:#0d1126;
+    border-radius:10px; overflow:hidden; border:1px solid #2c3563;
+  }
+  .k-w {
+    position:absolute; top:0; height:100%; background:var(--key-w);
+    border-right:1px solid #8a93b8;
+  }
+  .k-b {
+    position:absolute; top:0; height:62%; background:var(--key-b);
+    border:1px solid #000; border-top:3px solid #39406b; border-radius:0 0 3px 3px;
+    z-index:1; /* black keys always render on top of the white keys they overlap */
+  }
+  .k-w.marked, .k-b.marked { background:var(--accent2); }
+  .k-b.marked { border-top-color:#2a9d92; }
+  .k-w.m2, .k-b.m2 { background:var(--accent); }
+  .note-label {
+    position:absolute; bottom:2px; left:50%; transform:translateX(-50%);
+    font-size:.5rem; color:#5a628c; font-weight:700; pointer-events:none;
+  }
+  .k-w.marked .note-label, .k-b.marked .note-label,
+  .k-w.m2 .note-label, .k-b.m2 .note-label { color:#08312c; }
+
+  .controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  button {
+    font-family:inherit; font-size:1rem; font-weight:600;
+    background:var(--panel2); color:var(--text);
+    border:1px solid #3a4478; border-radius:10px; padding:10px 22px;
+    cursor:pointer; transition:transform .08s, background .15s;
+  }
+  button:hover:not(:disabled) { transform:translateY(-1px); background:#2c3563; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.primary {
+    background:linear-gradient(135deg, var(--accent), #5a4bd4);
+    border:none; font-size:1.1rem; padding:12px 34px;
+  }
+  button.primary:hover:not(:disabled) { background:linear-gradient(135deg,#8d80ff,#6a5ce0); }
+
+  .grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(115px,1fr)); gap:8px;
+  }
+  .grid button { padding:10px 6px; font-size:.92rem; text-align:left; }
+  .grid button .key {
+    display:inline-block; min-width:1.4em; margin-right:6px;
+    background:#39406b; border-radius:5px; font-size:.7rem;
+    text-align:center; padding:1px 4px; color:var(--muted);
+  }
+  .grid button.correct {
+    background:var(--good); color:#04351c; border-color:var(--good); animation:pop .3s;
+  }
+  .grid button.wrong { background:var(--bad); color:#3d0512; border-color:var(--bad); }
+  @keyframes pop { 0%{transform:scale(.9)} 60%{transform:scale(1.05)} 100%{transform:scale(1)} }
+
+  .feedback {
+    text-align:center; min-height:1.6em; font-size:1.05rem; font-weight:600;
+  }
+  .feedback.good { color:var(--good); }
+  .feedback.bad { color:var(--bad); }
+  .feedback small { display:block; font-weight:400; color:var(--muted); margin-top:3px; }
+
+  .howto { max-width:980px; margin-top:4px; color:var(--muted); font-size:.85rem;
+    line-height:1.6; }
+  .howto b { color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ============ LEFT: settings + stats ============ -->
+  <aside class="panel">
+    <h2>Settings</h2>
+    <label for="difficulty">Difficulty</label>
+    <select id="difficulty">
+      <option value="easy">Only the major scale</option>
+      <option value="medium" selected>Minor 3rds, 6ths &amp; 7ths</option>
+      <option value="hard">All 13 intervals</option>
+    </select>
+
+    <label for="direction">Direction</label>
+    <select id="direction">
+      <option value="up" selected>Ascending only</option>
+      <option value="down">Descending only</option>
+      <option value="both">Mixed</option>
+    </select>
+
+    <label for="startNote">Starting note</label>
+    <select id="startNote">
+      <option value="random">random</option>
+      <!-- note options are added by JavaScript -->
+    </select>
+    <p class="hint">Lock the first note to drill intervals from a fixed tonic. If the
+      locked note can't fit the interval in the chosen direction, the direction is
+      adjusted automatically so the round stays playable.</p>
+
+    <label for="playback">Playback style</label>
+    <select id="playback">
+      <option value="both" selected>Arpeggio + together</option>
+      <option value="arpeggio">Arpeggio only</option>
+      <option value="together">Together only (chord)</option>
+    </select>
+
+    <label for="tempo">Tempo: <span id="tempoVal">1.0s</span> per note</label>
+    <input type="range" id="tempo" min="0.4" max="1.6" step="0.05" value="1.0">
+
+    <h2 style="margin-top:18px">Statistics</h2>
+    <div class="stats">
+      <div class="stat"><div class="v" id="statCorrect">0</div><div class="k">Correct</div></div>
+      <div class="stat"><div class="v" id="statTotal">0</div><div class="k">Total</div></div>
+      <div class="stat"><div class="v" id="statStreak">0</div><div class="k">Streak</div></div>
+      <div class="stat"><div class="v" id="statBest">0</div><div class="k">Best</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat" style="grid-column:1/-1"><div class="v" id="statPct">–</div><div class="k">Accuracy</div></div>
+    </div>
+  </aside>
+
+  <!-- ============ RIGHT: game ============ -->
+  <main class="stage">
+    <header>
+      <h1>Interval <span>Trainer</span></h1>
+      <p class="tagline">Can you name the interval?</p>
+    </header>
+
+    <!-- Single child element so flex layout can't eat the spaces -->
+    <div class="status" id="status"><span class="status-text">Press <b>Start Round</b> to begin.</span></div>
+
+    <div class="piano" id="piano"></div>
+
+    <div class="controls">
+      <button class="primary" id="btnStart">▶ Start Round</button>
+      <button id="btnReplay" disabled>↻ Play Note Again</button>
+      <button id="btnRestart">⟲ Restart Game</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <p class="howto">
+      <b>How to play:</b> a reference note is played, then a second note, then both notes
+      <b>together</b> (style is configurable in Settings). Pick the interval from the second
+      note back to the first (or forward, depending on direction). Use keyboard keys
+      <b>A</b>, <b>W</b>, <b>S</b>, <b>E</b>, <b>D</b>, <b>F</b>, <b>T</b>, <b>G</b>, <b>Y</b>,
+      <b>H</b>, <b>U</b>, <b>J</b>, <b>K</b> to answer, <b>Space</b> to replay the notes,
+      and <b>Enter</b> to start or advance to the next round. Notes appear on the piano
+      after you answer - use them to check yourself.
+    </p>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+/* ================= Music theory data ================= */
+
+const INTERVALS = [
+  { semis: 0,  name: "Unison",   abbr: "P1" },
+  { semis: 1,  name: "Minor 2nd",abbr: "m2" },
+  { semis: 2,  name: "Major 2nd",abbr: "M2" },
+  { semis: 3,  name: "Minor 3rd",abbr: "m3" },
+  { semis: 4,  name: "Major 3rd",abbr: "M3" },
+  { semis: 5,  name: "Perfect 4th",abbr: "P4" },
+  { semis: 6,  name: "Tritone",  abbr: "TT" },
+  { semis: 7,  name: "Perfect 5th",abbr: "P5" },
+  { semis: 8,  name: "Minor 6th",abbr: "m6" },
+  { semis: 9,  name: "Major 6th",abbr: "M6" },
+  { semis: 10, name: "Minor 7th",abbr: "m7" },
+  { semis: 11, name: "Major 7th",abbr: "M7" },
+  { semis: 12, name: "Octave",   abbr: "P8" },
+];
+
+const DIFFICULTIES = {
+  easy:   [0, 2, 4, 5, 7, 9, 11, 12],
+  medium: [0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12],
+  hard:   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+};
+
+// Base odds for each interval on a fresh game. The unison starts low
+// (it's not really a challenge) but is still in the pool.
+const BASE_WEIGHTS = { 0: 0.3 };
+
+const NOTE_NAMES = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+const PIANO_START = 36;  // C2
+const PIANO_KEYS  = 49;  // C2 .. C6  (C4 is the middle)
+const PIANO_END   = PIANO_START + PIANO_KEYS - 1; // C6
+
+const midiToFreq = m => 440 * Math.pow(2, (m - 69) / 12);
+const midiName   = m => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+const isBlack    = m => [1,3,6,8,10].includes(m % 12);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+/* ================= Interval selection (anti-repeat) =================
+ * Two layers:
+ *  1. Back-to-back exclusion: the interval just played is excluded
+ *     from the next draw entirely, so the same interval never sounds
+ *     twice in a row.
+ *  2. Fatigue weighting: each interval played this game gets a
+ *     count and its pick chance shrinks as 1/(1 + count), so
+ *     frequently heard intervals become less likely to repeat.
+ */
+let playCounts = {};
+let lastPlayed = null;
+
+function resetPlayCounts() {
+  playCounts = {};
+  lastPlayed = null;
+}
+
+function pickInterval(pool) {
+  // Never repeat the immediately previous interval (unless it is the
+  // only interval in the pool).
+  let candidates = pool;
+  if (lastPlayed !== null && pool.length > 1) {
+    candidates = pool.filter(s => s !== lastPlayed);
+  }
+
+  const weights = candidates.map(s =>
+    (BASE_WEIGHTS[s] !== undefined ? BASE_WEIGHTS[s] : 1) / (1 + (playCounts[s] || 0))
+  );
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < candidates.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) {
+      lastPlayed = candidates[i];
+      return candidates[i];
+    }
+  }
+  lastPlayed = candidates[candidates.length - 1];
+  return candidates[candidates.length - 1];
+}
+
+/* ================= Audio engine ================= */
+
+let audioCtx = null, masterGain = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.5;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+/**
+ * Play a single note with a soft, piano-ish timbre:
+ * a sine fundamental plus quiet 2nd/3rd harmonics, with an
+ * attack/sustain/release envelope.
+ */
+function playNote(midi, when, duration) {
+  const freq = midiToFreq(midi);
+  const parts = [
+    { ratio: 1.0, gain: 0.60, type: "sine"     },
+    { ratio: 2.0, gain: 0.16, type: "sine"     },
+    { ratio: 3.0, gain: 0.05, type: "triangle" },
+  ];
+
+  parts.forEach(p => {
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = p.type;
+    osc.frequency.value = freq * p.ratio;
+
+    const peak = p.gain * 0.5;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(peak, when + 0.015);          // attack
+    g.gain.exponentialRampToValueAtTime(peak * 0.75, when + 0.12); // slight decay
+    g.gain.setValueAtTime(peak * 0.75, when + duration - 0.15);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + duration);  // release
+
+    osc.connect(g).connect(masterGain);
+    osc.start(when);
+    osc.stop(when + duration + 0.05);
+  });
+}
+
+/* ================= Piano visualization ================= */
+
+const pianoEl = document.getElementById("piano");
+
+function buildPiano() {
+  // Indices (0-based) of the white keys
+  const whites = [];
+  for (let i = 0; i < PIANO_KEYS; i++) if (!isBlack(PIANO_START + i)) whites.push(i);
+
+  const w = 100 / whites.length; // width of one white key, in %
+
+  for (let i = 0; i < PIANO_KEYS; i++) {
+    const midi = PIANO_START + i;
+    const key = document.createElement("div");
+    key.dataset.midi = midi;
+    key.classList.add(isBlack(midi) ? "k-b" : "k-w");
+
+    // Labels only on white keys - black keys are too narrow at this range
+    if (!isBlack(midi)) {
+      const label = document.createElement("span");
+      label.className = "note-label";
+      label.textContent = NOTE_NAMES[midi % 12];
+      key.appendChild(label);
+    }
+
+    if (!isBlack(midi)) {
+      const whiteIdx = whites.indexOf(i); // index among white keys
+      key.style.left  = (whiteIdx * w) + "%";
+      key.style.width = w + "%";
+    } else {
+      // Count the white keys BEFORE this black key; the black key is
+      // centred on the boundary between that white key and the next one.
+      const whiteCountBefore = whites.filter(x => x < i).length;
+      key.style.left  = (whiteCountBefore * w - w * 0.3) + "%";
+      key.style.width = (w * 0.6) + "%";
+    }
+    pianoEl.appendChild(key);
+  }
+}
+
+function clearPiano() {
+  pianoEl.querySelectorAll(".marked,.m2").forEach(k => k.classList.remove("marked","m2"));
+}
+
+function markPiano(midi, cls) {
+  const key = pianoEl.querySelector(`[data-midi="${midi}"]`);
+  if (key) key.classList.add(cls);
+}
+
+/* ================= Game state ================= */
+
+const state = {
+  round: null,          // { first, second, goingUp, interval }
+  phase: "idle",        // idle | playing | waiting | answered
+  stats: { correct: 0, total: 0, streak: 0, best: 0 },
+};
+
+const $ = id => document.getElementById(id);
+const btnStart  = $("btnStart"), btnReplay = $("btnReplay"),
+      btnRestart = $("btnRestart");
+const statusEl  = $("status"), feedbackEl = $("feedback");
+const gridEl    = $("grid");
+let answerButtons = [];
+
+/* ================= UI builders ================= */
+
+function buildAnswerGrid() {
+  gridEl.innerHTML = "";
+  answerButtons = [];
+  const keys = ["a","w","s","e","d","f","t","g","y","h","u","j","k"];
+
+  INTERVALS.forEach((iv, idx) => {
+    const b = document.createElement("button");
+    b.innerHTML = `<span class="key">${keys[idx]}</span>${iv.name}`;
+    b.disabled = true;
+    b.addEventListener("click", () => answer(iv.semis));
+    gridEl.appendChild(b);
+    answerButtons.push(b);
+  });
+}
+
+function buildStartNoteOptions() {
+  const sel = $("startNote");
+  for (let m = PIANO_START; m <= PIANO_END; m++) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = midiName(m);
+    sel.appendChild(opt);
+  }
+  sel.value = 60; // default: C4 (middle C)
+}
+
+function updateStats() {
+  const s = state.stats;
+  $("statCorrect").textContent = s.correct;
+  $("statTotal").textContent   = s.total;
+  $("statStreak").textContent  = s.streak;
+  $("statBest").textContent    = s.best;
+  $("statPct").textContent     = s.total ? Math.round(100 * s.correct / s.total) + "%" : "–";
+}
+
+// Wrap the content in a single element: .status is a flex container,
+// and raw text placed directly in one is split into anonymous flex
+// items whose surrounding whitespace gets stripped (which is what
+// produced "PressStartRoundto begin."). Inside one child, normal
+// inline spacing rules apply.
+function setStatus(html) {
+  statusEl.innerHTML = `<span class="status-text">${html}</span>`;
+}
+
+/* ================= Round flow ================= */
+
+function newRound() {
+  const pool = DIFFICULTIES[$("difficulty").value];
+  const semis = pickInterval(pool);
+  const direction = $("direction").value;
+  const locked = $("startNote").value;
+
+  let first, goingUp;
+
+  if (locked !== "random") {
+    // ---- Locked starting note -------------------------------------
+    // The first note is fixed; the interval is always kept exact.
+    // If the locked note can't fit the interval in the chosen
+    // direction (would fall off the piano), the direction is flipped.
+    // (For intervals ≤ 12 semitones on a 24-semitone keyboard,
+    // at least one direction always fits.)
+    first = parseInt(locked, 10);
+    const upValid   = first + semis <= PIANO_END;
+    const downValid = first - semis >= PIANO_START;
+
+    if (direction === "up")        goingUp = upValid || !downValid;
+    else if (direction === "down") goingUp = !downValid; // i.e. upValid
+    else                           goingUp = (upValid && downValid) ? Math.random() < 0.5 : upValid;
+  } else {
+    // ---- Random starting note (default behaviour) ------------------
+    goingUp = direction === "up" || (direction === "both" && Math.random() < 0.5);
+    const lo = goingUp ? PIANO_START : PIANO_START + semis;
+    const hi = goingUp ? PIANO_END - semis : PIANO_END;
+    first = PIANO_START + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
+  const second = goingUp ? first + semis : first - semis;
+
+  // Record this interval for anti-repeat weighting
+  playCounts[semis] = (playCounts[semis] || 0) + 1;
+
+  state.round = {
+    first,
+    second,
+    goingUp,
+    interval: INTERVALS.find(i => i.semis === semis),
+  };
+  state.phase = "playing";
+
+  // Reset UI
+  clearPiano();
+  feedbackEl.textContent = "";
+  feedbackEl.className = "feedback";
+  answerButtons.forEach(b => {
+    b.disabled = true;
+    b.classList.remove("correct", "wrong");
+  });
+  btnStart.disabled  = true;
+  btnReplay.disabled = true;
+  setStatus(`<span class="dot"></span> Listening…`);
+
+  playPair();
+}
+
+function playPair() {
+  ensureAudio();
+  const dur   = parseFloat($("tempo").value);
+  const gap   = 0.45;
+  const style = $("playback").value;
+  const t0    = audioCtx.currentTime + 0.08;
+
+  let unlockAt;
+
+  if (style === "arpeggio") {
+    // note 1, then note 2 - answers unlock when the second note starts
+    playNote(state.round.first,  t0, dur);
+    const t1 = t0 + dur + gap;
+    playNote(state.round.second, t1, dur + 0.35);
+    unlockAt = t1;
+  } else if (style === "together") {
+    // both notes at once - answers unlock as the chord starts ringing
+    playNote(state.round.first,  t0, dur + 0.6);
+    playNote(state.round.second, t0, dur + 0.6);
+    unlockAt = t0;
+  } else {
+    // default: note 1, note 2, then both together
+    playNote(state.round.first,  t0, dur);
+    const t1 = t0 + dur + gap;
+    playNote(state.round.second, t1, dur);
+    const t2 = t1 + dur + gap;
+    playNote(state.round.first,  t2, dur + 0.35);
+    playNote(state.round.second, t2, dur + 0.35);
+    unlockAt = t2;
+  }
+
+  setTimeout(() => {
+    if (state.phase !== "playing") return;
+    state.phase = "waiting";
+    answerButtons.forEach(b => b.disabled = false);
+    btnReplay.disabled = false;
+    // Reveal ONLY the starting note - the second note stays an ear test
+    setStatus(`First note: <b>${midiName(state.round.first)}</b> - what interval is the second note?`);
+  }, (unlockAt - audioCtx.currentTime) * 1000);
+}
+
+function answer(semis) {
+  if (state.phase !== "waiting") return;
+  state.phase = "answered";
+
+  const r = state.round;
+  const correct = semis === r.interval.semis;
+  const chosen  = INTERVALS.find(i => i.semis === semis);
+  const s = state.stats;
+
+  s.total++;
+  if (correct) { s.correct++; s.streak++; s.best = Math.max(s.best, s.streak); }
+  else s.streak = 0;
+  updateStats();
+
+  // Highlight the chosen + correct buttons
+  answerButtons.forEach(b => b.disabled = true);
+  answerButtons[INTERVALS.findIndex(i => i.semis === semis)].classList.add(correct ? "correct" : "wrong");
+  if (!correct)
+    answerButtons[INTERVALS.findIndex(i => i.semis === r.interval.semis)].classList.add("correct");
+
+  // Show the notes on the piano
+  markPiano(r.first,  "marked");
+  markPiano(r.second, "m2");
+
+  // Feedback
+  if (correct) {
+    feedbackEl.className = "feedback good";
+    feedbackEl.innerHTML = `✅ Correct - ${r.interval.name} (${r.interval.abbr})!
+      <small>${midiName(r.first)} → ${midiName(r.second)}${s.streak > 1 ? ` &nbsp;·&nbsp; 🔥 ${s.streak} in a row` : ""}</small>`;
+  } else {
+    feedbackEl.className = "feedback bad";
+    feedbackEl.innerHTML = `❌ It was a <b>${r.interval.name}</b> (${r.interval.abbr}).
+      <small>You answered ${chosen.name}. &nbsp; ${midiName(r.first)} → ${midiName(r.second)}</small>`;
+  }
+
+  btnReplay.disabled = true;
+  btnStart.disabled  = false;
+  btnStart.textContent = "▶ Next Round";
+  btnStart.focus();
+}
+
+function restartGame() {
+  state.round = null;
+  state.phase = "idle";   // any pending playPair() timeout bails out on this
+  state.stats = { correct: 0, total: 0, streak: 0, best: 0 };
+  resetPlayCounts();
+
+  clearPiano();
+  feedbackEl.textContent = "";
+  feedbackEl.className = "feedback";
+  answerButtons.forEach(b => {
+    b.disabled = true;
+    b.classList.remove("correct", "wrong");
+  });
+
+  btnStart.disabled  = false;
+  btnStart.textContent = "▶ Start Round";
+  btnReplay.disabled = true;
+  setStatus(`Press <b>Start Round</b> to begin.`);
+  updateStats();
+}
+
+/* ================= Events ================= */
+
+btnStart.addEventListener("click", () => {
+  ensureAudio();
+  newRound();
+});
+
+btnReplay.addEventListener("click", () => {
+  if (state.phase === "waiting") {
+    state.phase = "playing";
+    btnReplay.disabled = true;
+    setStatus(`<span class="dot"></span> Playing again…`);
+    playPair();
+  }
+});
+
+// Restart: wipe stats, anti-repeat counts and any in-flight round
+// back to the initial "press Start Round" state.
+btnRestart.addEventListener("click", restartGame);
+
+$("tempo").addEventListener("input", e => {
+  $("tempoVal").textContent = parseFloat(e.target.value).toFixed(2) + "s";
+});
+
+// Changing difficulty starts a fresh "game" for the anti-repeat tracker
+$("difficulty").addEventListener("change", resetPlayCounts);
+
+document.addEventListener("keydown", e => {
+  if (e.repeat) return;
+
+  // Enter → start the first round, or advance to the next round
+  if (e.key === "Enter" && (state.phase === "idle" || state.phase === "answered")) {
+    e.preventDefault();
+    ensureAudio();
+    newRound();
+    return;
+  }
+
+  // Space → replay the notes of the current round
+  if (e.key === " " && state.phase === "waiting") {
+    e.preventDefault();
+    btnReplay.click();
+    return;
+  }
+
+  // Home-row keys a w s e d f t g y h u j k → answer 1-13
+  const keyMap = { "a":0,"w":1,"s":2,"e":3,"d":4,"f":5,"t":6,"g":7,"y":8,
+                   "h":9, "u":10, "j":11, "k":12 };
+  const idx = keyMap[e.key.toLowerCase()];
+  if (idx !== undefined && state.phase === "waiting") {
+    answer(INTERVALS[idx].semis);
+  }
+});
+
+/* ================= Init ================= */
+
+buildPiano();
+buildAnswerGrid();
+buildStartNoteOptions();
+updateStats();
+</script>
+</body>
+</html>
