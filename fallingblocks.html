@@ -100,6 +100,7 @@
   /* ---------- keys ---------- */
   .keys { flex: 1; }
   .keys ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .keys .padhead { margin-top: 10px; }
   .keys li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--dim); letter-spacing: .5px; }
   kbd {
     font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px;
@@ -126,7 +127,7 @@
   #muteBtn.off { color: var(--dim); border-color: rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .05); box-shadow: none; }
 
   /* ---------- board ---------- */
-  .mid { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
   .title {
     font-family: 'Orbitron', sans-serif; font-weight: 900;
     font-size: 28px; letter-spacing: 8px; text-align: center;
@@ -265,12 +266,21 @@
         <ul>
           <li><span>Move</span><span><kbd>←</kbd> <kbd>→</kbd></span></li>
           <li><span>Soft drop</span><span><kbd>↓</kbd></span></li>
-          <li><span>Rotate</span><span><kbd>↑</kbd> <kbd>X</kbd></span></li>
+          <li><span>Rotate CW</span><span><kbd>X</kbd></span></li>
           <li><span>Rotate CCW</span><span><kbd>Z</kbd></span></li>
-          <li><span>Hard drop</span><span><kbd>SPACE</kbd></span></li>
+          <li><span>Hard drop</span><span><kbd>↑</kbd> <kbd>SPACE</kbd></span></li>
           <li><span>Hold</span><span><kbd>C</kbd></span></li>
           <li><span>Pause</span><span><kbd>P</kbd></span></li>
-          <li><span>Gamepad</span><span id="padStatus">— OFF</span></li>
+        </ul>
+        <h2 class="padhead">GAMEPAD <span id="padStatus">— OFF</span></h2>
+        <ul>
+          <li><span>Move</span><span><kbd>←</kbd> <kbd>→</kbd></span></li>
+          <li><span>Soft drop</span><span><kbd>↓</kbd></span></li>
+          <li><span>Rotate CW</span><span><kbd>A</kbd></span></li>
+          <li><span>Rotate CCW</span><span><kbd>X</kbd></span></li>
+          <li><span>Hard drop</span><span><kbd>B</kbd></span></li>
+          <li><span>Hold</span><span><kbd>Y</kbd></span></li>
+          <li><span>Pause</span><span><kbd>START</kbd></span></li>
         </ul>
         <button id="muteBtn">🔊 SOUND ON</button>
       </section>
@@ -853,8 +863,6 @@ function showMenu() {
     <div class="ov-title">FALLING BLOCKS</div>
     <div class="ov-tag">drop · spin · clear · glow</div>
     <div class="ov-prompt">PRESS <kbd>ENTER</kbd> TO START</div>
-    <div class="ov-hint">arrows to move · space to slam · C to hold · P to pause</div>
-    <div class="ov-hint">pad: A drop · X/Y spin · B hold · START pause</div>
   `);
 }
 function showPause() {
@@ -910,7 +918,6 @@ function handleHoldInput(dt) {
 }
 
 /* ---------- gamepad (standard mapping, polled every frame) ---------- */
-const PAD_DEADZONE = 0.45;
 const pad = { gp: null, prev: [] };
 const padKeys = { left: false, right: false, down: false };
 const effPrev = { left: false, right: false, down: false };
@@ -943,18 +950,17 @@ function pollGamepad() {
 
   if (gp) {
     const b = gp.buttons.map(x => x.pressed);
-    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
-    // D-pad or left stick (with deadzone)
-    padKeys.left = !!(b[14] || ax < -PAD_DEADZONE);
-    padKeys.right = !!(b[15] || ax > PAD_DEADZONE);
-    padKeys.down = !!(b[13] || ay > PAD_DEADZONE);
+    // D-pad
+    padKeys.left = !!b[14];
+    padKeys.right = !!b[15];
+    padKeys.down = !!b[13];
 
     const pressed = (i) => b[i] && !pad.prev[i]; // edge-triggered: once per press
-    if (pressed(0) || pressed(7)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else hardDrop(); }
-    if (pressed(2) || pressed(12)) { initAudio(); rotate(1); }   // X / D-pad up
-    if (pressed(3)) { initAudio(); rotate(-1); }                // Y
-    if (pressed(1)) { initAudio(); doHold(); }                  // B
-    if (pressed(9)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else togglePause(); }
+    if (pressed(0)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else rotate(1); }  // A
+    if (pressed(2)) { initAudio(); rotate(-1); }                // X
+    if (pressed(1)) { initAudio(); hardDrop(); }                // B
+    if (pressed(3)) { initAudio(); doHold(); }                  // Y
+    if (pressed(9)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else togglePause(); } // START
     pad.prev = b;
   } else {
     padKeys.left = padKeys.right = padKeys.down = false;
@@ -995,9 +1001,9 @@ window.addEventListener('keydown', (e) => {
       kb.right = true; break;
     case 'ArrowDown': case 'KeyS':
       kb.down = true; break;
-    case 'ArrowUp': case 'KeyX': case 'KeyW': rotate(1); break;
+    case 'KeyX': rotate(1); break;
     case 'KeyZ': rotate(-1); break;
-    case 'Space':
+    case 'ArrowUp': case 'Space':
       if (state === 'playing') hardDrop();
       else if (state === 'menu' || state === 'over') startGame();
       break;
