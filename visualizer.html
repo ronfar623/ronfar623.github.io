@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Display Scaling Visualizer</title>
+  <style>
+    :root {
+      --bg-color: #1a1a1e;
+      --card-bg: #26262b;
+      --card-border: #3f3f46;
+      --text-color: #f4f4f5;
+      --text-dim: #a1a1aa;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --visualizer-bg: #4a4a52;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+      font-size: 1.75rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Top Options Section */
+    .options-container {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      max-width: 1100px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .frame {
+      flex: 1;
+      min-width: 320px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--accent-color);
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px 16px;
+      margin-bottom: 16px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    input[type="number"], select {
+      background-color: #18181b;
+      border: 1px solid var(--card-border);
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+    }
+
+    input[type="number"]:focus, select:focus {
+      border-color: var(--accent-color);
+    }
+
+    .ratio-inputs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-group {
+      display: flex;
+      background-color: #18181b;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 16px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 6px 12px;
+      border: none;
+      background: none;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-btn.active {
+      background-color: var(--accent-color);
+      color: #fff;
+    }
+
+    .disabled-control {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Share Button Styling */
+    .share-btn {
+      margin-top: auto;
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .share-btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .share-btn.copied {
+      background-color: #22c55e;
+    }
+
+    /* Visualizer Section */
+    .visualizer-wrapper {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .visualizer-wrapper h2 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+    }
+
+    .visualizer-viewport {
+      background-color: var(--visualizer-bg);
+      width: 100%;
+      padding: 80px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: visible;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Screen Background Rectangle */
+    .lcd-screen {
+      width: 1024px;
+      background-color: #000000;
+      position: relative;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      flex-shrink: 0;
+      border: 1px solid #333;
+      overflow: visible;
+    }
+
+    /* Video Foreground Rectangle */
+    .video-image {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(12, 12, 15, 0.75);
+      border: 2px dashed rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+
+    /* Monochrome SVG Test Pattern */
+    .test-pattern-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Informational Text Badge inside Video Image */
+    .info-badge {
+      position: relative;
+      background-color: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-align: center;
+      color: #ffffff;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .info-badge .line-1 {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #60a5fa;
+    }
+
+    .info-badge .line-2 {
+      font-size: 0.85rem;
+      color: #e4e4e7;
+    }
+
+    .info-badge .line-3 {
+      font-size: 0.85rem;
+      color: #a1a1aa;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Display & Video Scaling Visualizer</h1>
+
+  <!-- Options Row -->
+  <div class="options-container">
+
+    <!-- Video Output Frame -->
+    <div class="frame">
+      <h2>Video Output</h2>
+
+      <div class="input-grid">
+        <div class="input-group">
+          <label for="vid-w">Horizontal Pixels</label>
+          <input type="number" id="vid-w" value="320" min="1">
+        </div>
+
+        <div class="input-group">
+          <label for="vid-h">Vertical Pixels</label>
+          <input type="number" id="vid-h" value="240" min="1">
+        </div>
+
+        <div class="input-group full-width">
+          <label>Desired Aspect Ratio</label>
+          <div class="ratio-inputs">
+            <input type="number" id="ar-num" value="4" min="1" step="1">
+            <span>:</span>
+            <input type="number" id="ar-den" value="3" min="1" step="1">
+          </div>
+        </div>
+      </div>
+
+      <label>Scaling Mode</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-scale-int">Integer</button>
+        <button type="button" class="toggle-btn" id="btn-scale-nonint">Non-Integer</button>
+      </div>
+
+      <div class="input-grid" id="integer-controls">
+        <div class="input-group">
+          <label for="mult-x">X Multiplier</label>
+          <input type="number" id="mult-x" value="4" min="1" step="1">
+        </div>
+
+        <div class="input-group">
+          <label for="mult-y">Y Multiplier</label>
+          <input type="number" id="mult-y" value="4" min="1" step="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Frame -->
+    <div class="frame">
+      <h2>Screen</h2>
+
+      <div class="input-grid">
+        <div class="input-group">
+          <label for="scr-w">Horizontal Pixels</label>
+          <input type="number" id="scr-w" value="1920" min="1">
+        </div>
+
+        <div class="input-group">
+          <label for="scr-h">Vertical Pixels</label>
+          <input type="number" id="scr-h" value="1080" min="1">
+        </div>
+
+        <div class="input-group full-width">
+          <label for="scr-diag">Diagonal Size</label>
+          <input type="number" id="scr-diag" value="24" step="0.1" min="0.1">
+        </div>
+      </div>
+
+      <label>Diagonal Unit</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-unit-in">Inches (in)</button>
+        <button type="button" class="toggle-btn" id="btn-unit-cm">Centimeters (cm)</button>
+      </div>
+
+      <!-- Share Button at bottom of Screen Frame -->
+      <button type="button" class="share-btn" id="btn-share">🔗 Share Configuration</button>
+    </div>
+
+  </div>
+
+  <!-- Visualizer Section -->
+  <div class="visualizer-wrapper">
+    <h2>Visualizer</h2>
+    <div class="visualizer-viewport">
+      <!-- Background Rectangle (LCD Screen) -->
+      <div class="lcd-screen" id="lcd-screen">
+        <!-- Foreground Rectangle (Video Image) -->
+        <div class="video-image" id="video-image">
+
+          <!-- Dynamic Monochrome SVG Test Pattern -->
+          <svg class="test-pattern-svg" id="test-pattern-svg" preserveAspectRatio="none"></svg>
+
+          <!-- Text Information Badge -->
+          <div class="info-badge">
+            <div class="line-1" id="info-size">0.0" diag. (0.0" x 0.0")</div>
+            <div class="line-2" id="info-ar">Aspect Ratio: 4:3</div>
+            <div class="line-3" id="info-ppi">0.0 PPI</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration & State
+    let isIntegerScaling = true;
+    let unitMode = 'in';
+
+    // Element References
+    const vidWInput = document.getElementById('vid-w');
+    const vidHInput = document.getElementById('vid-h');
+    const arNumInput = document.getElementById('ar-num');
+    const arDenInput = document.getElementById('ar-den');
+
+    const multXInput = document.getElementById('mult-x');
+    const multYInput = document.getElementById('mult-y');
+    const integerControlsGroup = document.getElementById('integer-controls');
+
+    const btnScaleInt = document.getElementById('btn-scale-int');
+    const btnScaleNonInt = document.getElementById('btn-scale-nonint');
+
+    const scrWInput = document.getElementById('scr-w');
+    const scrHInput = document.getElementById('scr-h');
+    const scrDiagInput = document.getElementById('scr-diag');
+
+    const btnUnitIn = document.getElementById('btn-unit-in');
+    const btnUnitCm = document.getElementById('btn-unit-cm');
+    const btnShare = document.getElementById('btn-share');
+
+    const lcdScreen = document.getElementById('lcd-screen');
+    const videoImage = document.getElementById('video-image');
+    const testPatternSvg = document.getElementById('test-pattern-svg');
+    const infoSize = document.getElementById('info-size');
+    const infoAr = document.getElementById('info-ar');
+    const infoPpi = document.getElementById('info-ppi');
+
+    // Helper to sanitize whole-number integer fields
+    function getIntegerVal(inputEl, fallback) {
+      let val = Math.round(parseFloat(inputEl.value));
+      return (isNaN(val) || val < 1) ? fallback : val;
+    }
+
+    // Toggle Mode Controllers
+    function setScalingMode(integerMode) {
+      isIntegerScaling = integerMode;
+      if (isIntegerScaling) {
+        btnScaleInt.classList.add('active');
+        btnScaleNonInt.classList.remove('active');
+        integerControlsGroup.classList.remove('disabled-control');
+      } else {
+        btnScaleNonInt.classList.add('active');
+        btnScaleInt.classList.remove('active');
+        integerControlsGroup.classList.add('disabled-control');
+      }
+    }
+
+    function setUnitMode(unit) {
+      unitMode = unit;
+      if (unitMode === 'in') {
+        btnUnitIn.classList.add('active');
+        btnUnitCm.classList.remove('active');
+      } else {
+        btnUnitCm.classList.add('active');
+        btnUnitIn.classList.remove('active');
+      }
+    }
+
+    // Main Update Function
+    function updateVisualizer() {
+      // 1. Gather & Validate Inputs
+      const scrPxW = Math.max(1, parseFloat(scrWInput.value) || 1920);
+      const scrPxH = Math.max(1, parseFloat(scrHInput.value) || 1080);
+      const scrDiag = Math.max(0.1, parseFloat(scrDiagInput.value) || 24);
+
+      const vidPxW = Math.max(1, parseFloat(vidWInput.value) || 320);
+      const vidPxH = Math.max(1, parseFloat(vidHInput.value) || 240);
+
+      const arNum = getIntegerVal(arNumInput, 4);
+      const arDen = getIntegerVal(arDenInput, 3);
+      const multX = getIntegerVal(multXInput, 4);
+      const multY = getIntegerVal(multYInput, 4);
+
+      // 2. LCD Screen Rendering & Physical Size Calculations
+      const RENDER_SCREEN_WIDTH = 1024;
+      const screenAspectRatio = scrPxW / scrPxH;
+      const renderScreenHeight = RENDER_SCREEN_WIDTH / screenAspectRatio;
+
+      // Apply screen dimensions in DOM
+      lcdScreen.style.width = `${RENDER_SCREEN_WIDTH}px`;
+      lcdScreen.style.height = `${renderScreenHeight}px`;
+
+      // Screen Physical Dimensions
+      const physicalDiag = scrDiag;
+      const physicalWidth = physicalDiag * Math.cos(Math.atan(1 / screenAspectRatio));
+      const physicalHeight = physicalDiag * Math.sin(Math.atan(1 / screenAspectRatio));
+
+      // Unit length per pixel on screen
+      const unitPerPxW = physicalWidth / scrPxW;
+      const unitPerPxH = physicalHeight / scrPxH;
+
+      // 3. Video Image Calculations
+      let renderVidW = 0;
+      let renderVidH = 0;
+      let vidPhysWidth = 0;
+      let vidPhysHeight = 0;
+
+      if (isIntegerScaling) {
+        // Integer scaling: Multiplies base video pixels on each axis independently
+        const scaledVidPxW = vidPxW * multX;
+        const scaledVidPxH = vidPxH * multY;
+
+        renderVidW = (scaledVidPxW / scrPxW) * RENDER_SCREEN_WIDTH;
+        renderVidH = (scaledVidPxH / scrPxH) * renderScreenHeight;
+
+        vidPhysWidth = scaledVidPxW * unitPerPxW;
+        vidPhysHeight = scaledVidPxH * unitPerPxH;
+      } else {
+        // Non-integer scaling: Fit screen boundaries while maintaining desired aspect ratio
+        const desiredAR = arNum / arDen;
+
+        if (desiredAR > screenAspectRatio) {
+          // Video is wider than screen -> letterboxed top/bottom
+          renderVidW = RENDER_SCREEN_WIDTH;
+          renderVidH = RENDER_SCREEN_WIDTH / desiredAR;
+        } else {
+          // Video is taller than or matches screen -> pillarboxed left/right
+          renderVidH = renderScreenHeight;
+          renderVidW = renderScreenHeight * desiredAR;
+        }
+
+        vidPhysWidth = (renderVidW / RENDER_SCREEN_WIDTH) * physicalWidth;
+        vidPhysHeight = (renderVidH / renderScreenHeight) * physicalHeight;
+      }
+
+      // Apply Video dimensions in DOM
+      videoImage.style.width = `${renderVidW}px`;
+      videoImage.style.height = `${renderVidH}px`;
+
+      // 4. Render Black & White Test Pattern matched to Desired Aspect Ratio Geometry
+      const desiredAR = arNum / arDen;
+      const svgH = 100;
+      const svgW = 100 * desiredAR;
+
+      testPatternSvg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+      const gridStep = 10;
+      const centerX = svgW / 2;
+      const centerY = svgH / 2;
+
+      // Circle radii and offsets
+      const rCenter = 22;
+      const rOuter = 13;
+
+      const tlX = svgW * 0.2;
+      const tlY = svgH * 0.2;
+      const trX = svgW * 0.8;
+      const trY = svgH * 0.2;
+      const blX = svgW * 0.2;
+      const blY = svgH * 0.8;
+      const brX = svgW * 0.8;
+      const brY = svgH * 0.8;
+
+      testPatternSvg.innerHTML = `
+        <defs>
+          <pattern id="bw-grid" x="${centerX}" y="${centerY}" width="${gridStep}" height="${gridStep}" patternUnits="userSpaceOnUse">
+            <path d="M ${gridStep} 0 L 0 0 0 ${gridStep}" fill="none" stroke="rgba(255, 255, 255, 0.25)" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+
+        <!-- Grid Background -->
+        <rect width="${svgW}" height="${svgH}" fill="url(#bw-grid)" />
+
+        <!-- Non-Overlapping Quincunx Outer Circles -->
+        <circle cx="${tlX}" cy="${tlY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${trX}" cy="${trY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${blX}" cy="${blY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${brX}" cy="${brY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
+
+        <!-- Center Circle -->
+        <circle cx="${centerX}" cy="${centerY}" r="${rCenter}" fill="rgba(255, 255, 255, 0.2)" stroke="#ffffff" stroke-width="2" />
+        <circle cx="${centerX}" cy="${centerY}" r="1.5" fill="#ffffff" />
+      `;
+
+      // 5. Display Informational Text
+      const vidDiag = Math.sqrt(vidPhysWidth * vidPhysWidth + vidPhysHeight * vidPhysHeight);
+      const unitSymbol = unitMode === 'in' ? '"' : ' cm';
+
+      // Line 1: Dimensions
+      infoSize.textContent = `${vidDiag.toFixed(1)}${unitSymbol} diag. (${vidPhysWidth.toFixed(1)}${unitSymbol} x ${vidPhysHeight.toFixed(1)}${unitSymbol})`;
+
+      // Line 2: Aspect Ratio
+      const currentAR = renderVidW / renderVidH;
+      const varWidth = currentAR * arDen;
+      const formattedVarWidth = Number(varWidth.toFixed(2));
+      infoAr.textContent = `Aspect Ratio: ${formattedVarWidth}:${arDen}`;
+
+      // Line 3: Source Pixels Per Inch / Pixels Per CM (PPI/PPCM)
+      const ppiX = vidPxW / vidPhysWidth;
+      const ppiY = vidPxH / vidPhysHeight;
+      const ppiUnit = unitMode === 'in' ? 'PPI' : 'PPCM';
+
+      // Check if rendered base pixel density is non-square (allowing minor rounding margin)
+      const isSquarePixel = Math.abs(ppiX - ppiY) < 0.05;
+
+      if (isSquarePixel) {
+        infoPpi.textContent = `${ppiX.toFixed(1)} ${ppiUnit}`;
+      } else {
+        infoPpi.textContent = `${ppiX.toFixed(1)} x ${ppiY.toFixed(1)} ${ppiUnit}`;
+      }
+    }
+
+    // Load state parameters from URL if present
+    function loadStateFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      if ([...params.keys()].length === 0) return;
+
+      if (params.has('vw')) vidWInput.value = params.get('vw');
+      if (params.has('vh')) vidHInput.value = params.get('vh');
+      if (params.has('arn')) arNumInput.value = params.get('arn');
+      if (params.has('ard')) arDenInput.value = params.get('ard');
+      if (params.has('mx')) multXInput.value = params.get('mx');
+      if (params.has('my')) multYInput.value = params.get('my');
+      if (params.has('sw')) scrWInput.value = params.get('sw');
+      if (params.has('sh')) scrHInput.value = params.get('sh');
+      if (params.has('sd')) scrDiagInput.value = params.get('sd');
+
+      if (params.has('sm')) {
+        setScalingMode(params.get('sm') === 'int');
+      }
+
+      if (params.has('u')) {
+        setUnitMode(params.get('u') === 'cm' ? 'cm' : 'in');
+      }
+    }
+
+    // Generate Share URL with query parameters
+    function generateShareURL() {
+      const params = new URLSearchParams();
+      params.set('vw', vidWInput.value);
+      params.set('vh', vidHInput.value);
+      params.set('arn', arNumInput.value);
+      params.set('ard', arDenInput.value);
+      params.set('sm', isIntegerScaling ? 'int' : 'nonint');
+      params.set('mx', multXInput.value);
+      params.set('my', multYInput.value);
+      params.set('sw', scrWInput.value);
+      params.set('sh', scrHInput.value);
+      params.set('sd', scrDiagInput.value);
+      params.set('u', unitMode);
+
+      return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    }
+
+    // Event Listeners for Input Elements
+    const allInputs = [
+      vidWInput, vidHInput, arNumInput, arDenInput,
+      scrWInput, scrHInput, scrDiagInput,
+      multXInput, multYInput
+    ];
+
+    allInputs.forEach(input => {
+      input.addEventListener('input', updateVisualizer);
+      input.addEventListener('change', updateVisualizer);
+    });
+
+    // Enforce positive whole-number values on change/blur for integer fields
+    const integerInputs = [arNumInput, arDenInput, multXInput, multYInput];
+    integerInputs.forEach(input => {
+      input.addEventListener('change', () => {
+        if (input.value !== '') {
+          input.value = Math.max(1, Math.round(parseFloat(input.value) || 1));
+        }
+      });
+    });
+
+    // Toggles
+    btnScaleInt.addEventListener('click', () => {
+      setScalingMode(true);
+      updateVisualizer();
+    });
+
+    btnScaleNonInt.addEventListener('click', () => {
+      setScalingMode(false);
+      updateVisualizer();
+    });
+
+    btnUnitIn.addEventListener('click', () => {
+      setUnitMode('in');
+      updateVisualizer();
+    });
+
+    btnUnitCm.addEventListener('click', () => {
+      setUnitMode('cm');
+      updateVisualizer();
+    });
+
+    // Share Button Event Listener
+    btnShare.addEventListener('click', () => {
+      const shareUrl = generateShareURL();
+
+      // Update browser address bar without reloading
+      window.history.pushState({}, '', shareUrl);
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const originalText = btnShare.innerHTML;
+        btnShare.classList.add('copied');
+        btnShare.innerHTML = '✓ Link Copied to Clipboard!';
+
+        setTimeout(() => {
+          btnShare.classList.remove('copied');
+          btnShare.innerHTML = originalText;
+        }, 2000);
+      }).catch(() => {
+        prompt('Copy this URL to share your settings:', shareUrl);
+      });
+    });
+
+    // Initialize Page
+    loadStateFromURL();
+    updateVisualizer();
+  </script>
+</body>
+</html>
