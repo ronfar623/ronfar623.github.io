@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FALLING BLOCKS</title>
+<title>NEON BLOCKS</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -268,7 +268,7 @@
     </aside>
 
     <div class="mid">
-      <h1 class="title">FALLING BLOCKS</h1>
+      <h1 class="title">NEON BLOCKS</h1>
       <div class="board-wrap" id="boardWrap">
         <canvas id="board"></canvas>
         <div class="scan"></div>
@@ -560,8 +560,8 @@ let particles = [], popups = [];
 let shake = { mag: 0, t: 0, dur: 1 };
 let flashT = 0;
 let best = 0;
-try { best = parseInt(localStorage.getItem('fallingBlocksBest') || '0', 10) || 0; } catch (e) {}
-function saveBest(v) { try { localStorage.setItem('fallingBlocksBest', String(v)); } catch (e) {} }
+try { best = parseInt(localStorage.getItem('neonBlocksBest') || '0', 10) || 0; } catch (e) {}
+function saveBest(v) { try { localStorage.setItem('neonBlocksBest', String(v)); } catch (e) {} }
 
 const emptyGrid = () => Array.from({ length: TOTAL }, () => new Array(COLS).fill(null));
 grid = emptyGrid();
@@ -898,7 +898,7 @@ function showOverlay(html) { overlayInner.innerHTML = html; overlay.classList.re
 function hideOverlay() { overlay.classList.add('hidden'); }
 function showMenu() {
   showOverlay(`
-    <div class="ov-title">FALLING BLOCKS</div>
+    <div class="ov-title">NEON BLOCKS</div>
     <div class="ov-tag">drop · spin · clear · glow</div>
     <div class="ov-prompt">PRESS <kbd>ENTER</kbd> TO START</div>
   `);
@@ -1279,7 +1279,7 @@ function renderNext() {
 }
 
 // lightweight debug/test hook
-window.__fallingblocks = {
+window.__neonblocks = {
   get state() { return state; },
   get grid() { return grid; },
   get piece() { return piece; },
