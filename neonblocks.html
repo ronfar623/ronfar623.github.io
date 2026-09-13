@@ -188,6 +188,15 @@
     transition: opacity .3s ease, visibility .3s ease;
   }
   .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  /* attract mode: menu text stays on screen over the live demo — drop the
+     dim/blur backdrop so the demo shows through, and let clicks pass to the
+     board (a click grabs the demo as a fresh player game) */
+  .overlay.attract {
+    pointer-events: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
   .ov-title {
     font-family: 'Orbitron', sans-serif; font-weight: 900;
     font-size: 34px; letter-spacing: 5px;
@@ -292,6 +301,318 @@
     </aside>
   </main>
 
+<script>
+/* ============================================================
+   NEON BLOCKS demo planner (port of neonbot/planner.js)
+
+   The same lookahead planner the Firefox bot uses: it enumerates
+   every rotation/position of the current piece (plus a hold branch
+   that plays the piece that comes out instead), simulates the lock
+   with exact game scoring (line points x level, T-spin, b2b, combo,
+   hard-drop points) and scores the resulting stack with a
+   holes/height/bumpiness/wells heuristic.
+
+   NB: deliberately no 'use strict' directive line in this block —
+   neonbot/bot.js injects its state hook right after the page's single
+   strict-mode marker, which must stay in the game script below.
+   Keep ROT / KICKS / scoring in sync with neonbot/planner.js.
+   ============================================================ */
+const NBPlanner = (() => {
+const COLS = 10, ROWS = 20, HIDDEN = 4, TOTAL = ROWS + HIDDEN;
+
+const SHAPES = {
+  I: [[0, 1], [1, 1], [2, 1], [3, 1]],
+  O: [[0, 0], [1, 0], [0, 1], [1, 1]],
+  T: [[1, 0], [0, 1], [1, 1], [2, 1]],
+  S: [[1, 0], [2, 0], [0, 1], [1, 1]],
+  Z: [[0, 0], [1, 0], [1, 1], [2, 1]],
+  J: [[0, 0], [0, 1], [1, 1], [2, 1]],
+  L: [[2, 0], [0, 1], [1, 1], [2, 1]],
+};
+const SIZE = { I: 4, O: 2, T: 3, S: 3, Z: 3, J: 3, L: 3 };
+const TYPES = Object.keys(SHAPES);
+
+// SRS rotation states (same derivation as the game)
+const ROT = {};
+for (const t of TYPES) {
+  ROT[t] = [];
+  let cells = SHAPES[t];
+  const s = SIZE[t];
+  for (let r = 0; r < 4; r++) {
+    ROT[t].push(cells.map((c) => c.slice()));
+    cells = cells.map(([x, y]) => [s - 1 - y, x]);
+  }
+}
+
+// SRS wall kicks (grid coordinates, +y down) — copied verbatim from the game
+const KICKS_JLSTZ = {
+  '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '1>0': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+  '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+  '2>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+  '3>2': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '0>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+};
+const KICKS_I = {
+  '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+  '1>0': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+  '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+  '2>1': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+  '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+  '3>2': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+  '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+  '0>3': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+};
+
+const LINE_PTS = [0, 100, 300, 500, 800];
+const TSPIN_PTS = [0, 800, 1200, 1600];
+const TSPIN_OUT_PTS = 400;
+
+const SPAWN_Y = HIDDEN - 1;
+const spawnX = (type) => Math.floor((COLS - SIZE[type]) / 2);
+
+/* ---- tunable heuristic weights (tune via neonbot/sim.js) ---- */
+const W = {
+  holes: 10,    // per hole (buried empty cell)
+  agg: 0.35,    // per unit of aggregate column height
+  bump: 0.4,    // per unit of |height[i+1]-height[i]|
+  well: 2,      // per adjacent pair of empty columns
+  move: 0.2,    // per horizontal cell of travel (lock-delay risk)
+  rot: 0.3,     // per rotation press (lock-delay risk)
+};
+
+/* ---------------- grid helpers ---------------- */
+
+function cellsCollide(g, cells, px, py) {
+  for (const [cx, cy] of cells) {
+    const gx = px + cx, gy = py + cy;
+    if (gx < 0 || gx >= COLS || gy >= TOTAL) return true;
+    if (gy >= 0 && g[gy][gx]) return true;
+  }
+  return false;
+}
+const fits = (g, type, rot, x, y) => !cellsCollide(g, ROT[type][rot], x, y);
+
+// topmost filled row per column (TOTAL if empty)
+function topRows(g) {
+  const top = new Array(COLS).fill(TOTAL);
+  for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < TOTAL; y++) if (g[y][x]) { top[x] = y; break; }
+  }
+  return top;
+}
+
+// rest row when `type` in rotation `tr` is dropped straight down at column `tx`.
+// Returns Infinity if the footprint leaves the board horizontally.
+function landingY(top, type, tr, tx) {
+  const colMax = {};
+  for (const [cx, cy] of ROT[type][tr]) {
+    if (cy > (colMax[cx] ?? -1)) colMax[cx] = cy;
+  }
+  let ty = Infinity;
+  for (const cx of Object.keys(colMax)) {
+    const c = tx + Number(cx);
+    if (c < 0 || c >= COLS) return Infinity;
+    const limit = top[c] - colMax[cx] - 1; // ty must be < top[c] - maxCy
+    if (limit < ty) ty = limit;
+  }
+  return ty;
+}
+
+// does this piece even spawn? (game: collides(ROT[type][0], spawnX, HIDDEN-1))
+const canSpawn = (g, type) => fits(g, type, 0, spawnX(type), SPAWN_Y);
+
+// T-spin 3-corner check (game's isTSpin, minus lastWasRotation which the
+// caller decides from the executed move sequence)
+function threeCorners(g, tx, ty) {
+  const cx = tx + 1, cy = ty + 1;
+  let n = 0;
+  for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const gx = cx + dx, gy = cy + dy;
+    if (gx < 0 || gx >= COLS || gy >= TOTAL || (gy >= 0 && g[gy][gx])) n++;
+  }
+  return n >= 3;
+}
+
+// simulate the bot's rotation sequence (shortest direction, SRS kicks) from an
+// arbitrary piece state. Returns final {x, y, rot} and the number of presses.
+function rotTo(g, type, from, to, px, py) {
+  const delta = (to - from + 4) % 4;
+  if (delta === 0) return { x: px, y: py, rot: from, steps: 0 };
+  const dir = delta <= 2 ? 1 : -1;
+  const steps = dir === 1 ? delta : 4 - delta;
+  let x = px, y = py, rot = from;
+  const table = type === 'I' ? KICKS_I : KICKS_JLSTZ;
+  for (let i = 0; i < steps; i++) {
+    const nr = (rot + dir + 4) % 4;
+    let ok = false;
+    for (const [kx, ky] of table[rot + '>' + nr]) {
+      if (!cellsCollide(g, ROT[type][nr], x + kx, y + ky)) {
+        x += kx; y += ky; ok = true; break;
+      }
+    }
+    if (!ok) break; // all kicks blocked: rotation press had no effect
+    rot = nr;
+  }
+  return { x, y, rot, steps };
+}
+
+/* ---------------- lock simulation (mirrors lockPiece()) ---------------- */
+
+function lockSim(g, type, tr, tx, ty, lines, combo, b2b, tspin) {
+  const level = Math.floor(lines / 10) + 1;
+  const g2 = g.map((r) => r.slice());
+  let allHidden = true;
+  for (const [cx, cy] of ROT[type][tr]) {
+    const gy = ty + cy;
+    if (gy >= 0) {
+      g2[gy][tx + cx] = 1;
+      if (gy >= HIDDEN) allHidden = false;
+    }
+  }
+  const full = [];
+  for (let y = 0; y < TOTAL; y++) if (g2[y].every((v) => v)) full.push(y);
+
+  let pts = 2 * Math.max(0, ty - SPAWN_Y); // hard drop points
+  let c = combo, b = b2b, nl = lines;
+  if (full.length > 0) {
+    c++;
+    nl += full.length;
+    const base = tspin ? TSPIN_PTS[full.length] : LINE_PTS[full.length];
+    const b2bTarget = full.length === 4 || (tspin && full.length > 0);
+    const mult = (b2bTarget && b) ? 1.5 : 1;
+    b = b2bTarget;
+    pts += Math.floor(base * mult * level);
+    if (c > 0) pts += 50 * c * level;
+    const keep = g2.filter((_, y) => !full.includes(y));
+    while (keep.length < TOTAL) keep.unshift(new Array(COLS).fill(0));
+    return { g: keep, pts, combo: c, b2b: b, lines: nl, cleared: full.length, dead: false };
+  }
+  c = -1;
+  if (tspin) pts += TSPIN_OUT_PTS * level;
+  return { g: g2, pts, combo: c, b2b: b, lines: nl, cleared: 0, dead: allHidden };
+}
+
+/* ---------------- heuristic (stack quality, no line points) ---------------- */
+
+function evalHeuristic(g) {
+  const heights = new Array(COLS).fill(0);
+  let holes = 0;
+  for (let x = 0; x < COLS; x++) {
+    let h = 0, seen = false;
+    for (let y = 0; y < TOTAL; y++) {
+      if (g[y][x]) { h = TOTAL - y; if (!seen) seen = true; }
+      else if (seen) holes++;
+    }
+    heights[x] = h;
+  }
+  let agg = 0, bump = 0, wells = 0;
+  for (let x = 0; x < COLS; x++) {
+    agg += heights[x];
+    if (x > 0) {
+      bump += Math.abs(heights[x] - heights[x - 1]);
+      if (heights[x] === 0 && heights[x - 1] === 0) wells++;
+    }
+  }
+  return -(W.holes * holes + W.agg * agg + W.bump * bump) + W.well * wells;
+}
+
+/* ---------------- lookahead search ---------------- */
+/*
+ * search(grid, active, queue, hold, holdUsed, lines, combo, b2b, acc, depth, st)
+ *   active   : type of the piece currently falling
+ *   queue    : upcoming types (NOT including active); game keeps 6
+ *   st       : actual spawn state {rot, x, y} of `active` (for kick simulation)
+ * Returns {v, tr, tx, held, tspin} for the best first move, or null if the
+ * branch is dead (piece cannot spawn).
+ */
+function search(g, active, queue, hold, holdUsed, lines, combo, b2b, acc, depth, st) {
+  if (depth === 0) return { v: acc + evalHeuristic(g) };
+  if (queue.length === 0) return null; // no next piece (can't happen with the 6-deep queue at depth <= 3)
+  const top = topRows(g);
+  let best = null;
+
+  // ptype is placed; after it locks, the game spawns nextActive with
+  // nextQueue as the upcoming queue, and the hold slot becomes nextHold.
+  const consider = (ptype, nextHold, pstate, held, nextActive, nextQueue) => {
+    if (!canSpawn(g, ptype)) return; // game over in this branch
+    const rotRes = new Array(4).fill(null);
+    for (let tr = 0; tr < 4; tr++) {
+      if (ptype === 'O' && tr !== 0) continue;
+      rotRes[tr] = rotTo(g, ptype, pstate.rot, tr, pstate.x, pstate.y);
+    }
+    for (let tr = 0; tr < 4; tr++) {
+      if (ptype === 'O' && tr !== 0) continue;
+      const rr = rotRes[tr];
+      // tx range that keeps the footprint on the board. minCx/maxCx are this
+      // rotation's cell x-offsets; allowing tx < 0 is what makes wall-hugging
+      // placements reachable — most importantly a vertical I in column 0
+      // (tx = -1/-2), which a 0..COLS-1 loop never considers.
+      let minCx = 99, maxCx = -99;
+      for (const [cx] of ROT[ptype][tr]) {
+        if (cx < minCx) minCx = cx;
+        if (cx > maxCx) maxCx = cx;
+      }
+      for (let tx = -minCx; tx <= COLS - 1 - maxCx; tx++) {
+        const ty = landingY(top, ptype, tr, tx);
+        if (ty === Infinity) continue;
+        // T-spin only if the last executed action is a rotation: the bot
+        // rotates first, then aligns horizontally, so no move after rotation
+        // is exactly (final rotated x === target x).
+        const tspin = ptype === 'T' && rr.rot === tr && rr.steps > 0 &&
+          tx === rr.x && threeCorners(g, tx, ty);
+        const r = lockSim(g, ptype, tr, tx, ty, lines, combo, b2b, tspin);
+        if (r.dead) continue;
+        const cost = W.move * Math.abs(tx - rr.x) + W.rot * rr.steps;
+        const sub = search(
+          r.g, nextActive, nextQueue, nextHold, false,
+          r.lines, r.combo, r.b2b,
+          acc + r.pts - cost, depth - 1,
+          { rot: 0, x: spawnX(nextActive), y: SPAWN_Y },
+        );
+        if (!sub) continue;
+        if (!best || sub.v > best.v) best = { v: sub.v, tr, tx, ty, held, tspin };
+      }
+    }
+  };
+
+  // place the current piece; next piece is queue[0]
+  consider(active, hold, st, false, queue[0], queue.slice(1));
+  // or hold the current piece and play the piece that comes out instead:
+  //   hold slot filled  -> the old hold comes out, queue is unchanged
+  //   hold slot empty   -> queue[0] comes out, queue loses its head
+  if (!holdUsed) {
+    if (hold) consider(hold, active, { rot: 0, x: spawnX(hold), y: SPAWN_Y }, true, queue[0], queue.slice(1));
+    else if (queue.length >= 2) consider(queue[0], active, { rot: 0, x: spawnX(queue[0]), y: SPAWN_Y }, true, queue[1], queue.slice(2));
+  }
+  return best;
+}
+
+/* ---------------- top-level planning ---------------- */
+
+function plan(snap, depth = 3) {
+  const p = snap.piece;
+  if (!p) return null;
+  const res = search(
+    snap.grid, p.type, snap.queue, snap.holdType ?? null,
+    snap.holdUsed ?? false, snap.lines ?? 0, snap.combo ?? -1,
+    snap.b2b ?? false, 0, depth, { rot: p.rot, x: p.x, y: p.y },
+  );
+  if (!res) return null;
+  return { ...res, activeType: p.type, holdType: snap.holdType ?? null };
+}
+
+return {
+  COLS, ROWS, HIDDEN, TOTAL, TYPES, ROT, KICKS_I, KICKS_JLSTZ,
+  SPAWN_Y, spawnX, W,
+  cellsCollide, fits, topRows, landingY, canSpawn, threeCorners, rotTo,
+  lockSim, evalHeuristic, search, plan,
+  LINE_PTS, TSPIN_PTS, TSPIN_OUT_PTS,
+};
+})();
+</script>
 <script>
 (() => {
 'use strict';
@@ -594,7 +915,8 @@ function startGame() {
   stopAllSounds(); // silence anything still ringing from the previous game (e.g. the game-over chime on a fast restart)
   resetGame();
   state = 'playing';
-  hideOverlay();
+  if (attract.driving) showMenuAttract(); // demo game: keep the menu text on screen
+  else hideOverlay();                     // player game: the prompt is done, hide it
   sfx.start();
 }
 
@@ -767,7 +1089,9 @@ function updateHUD() {
     void el.score.offsetWidth;
     el.score.classList.add('bump');
   }
-  el.best.textContent = Math.max(best, score).toLocaleString();
+  // while the demo bot is playing, keep the Best panel on the player's saved
+  // best — the live max would track the demo's score, not the player's
+  el.best.textContent = (attract.driving ? best : Math.max(best, score)).toLocaleString();
   el.level.textContent = level;
   el.level.style.color = `hsl(${(205 + (level - 1) * 16) % 360} 90% 66%)`;
   el.lines.textContent = lines;
@@ -792,7 +1116,9 @@ function gameOver() {
   stopAllSounds(); // silence in-flight gameplay sounds (last drop/rotate) before the chime
   sfx.over();
   addShake(8, 320);
-  const record = score > best;
+  // the demo bot's top-out isn't a player game over: while attract is driving,
+  // keep the best (and the "NEW BEST SCORE" banner) reserved for the player
+  const record = !attract.driving && score > best;
   if (record) { best = score; saveBest(best); }
   showOver(record);
   updateHUD();
@@ -895,21 +1221,26 @@ function renderBg(dt, now) {
 const overlay = $('overlay');
 const overlayInner = $('overlayInner');
 function showOverlay(html) { overlayInner.innerHTML = html; overlay.classList.remove('hidden'); }
-function hideOverlay() { overlay.classList.add('hidden'); }
-function showMenu() {
-  showOverlay(`
+function hideOverlay() { overlay.classList.add('hidden'); overlay.classList.remove('attract'); }
+const MENU_HTML = `
     <div class="ov-title">NEON BLOCKS</div>
     <div class="ov-tag">drop · spin · clear · glow</div>
     <div class="ov-prompt">PRESS <kbd>ENTER</kbd> TO START</div>
-  `);
-}
+  `;
+function showMenu() { showOverlay(MENU_HTML); }
+// the same menu, with the dim/blur backdrop removed so the live demo behind
+// it stays visible (attract mode). Stays up for the whole demo game and only
+// disappears when the player actually starts.
+function showMenuAttract() { showOverlay(MENU_HTML); overlay.classList.add('attract'); }
 function showPause() {
+  overlay.classList.remove('attract');
   showOverlay(`
     <div class="ov-title sm">PAUSED</div>
     <div class="ov-prompt">PRESS <kbd>P</kbd> TO RESUME</div>
   `);
 }
 function showOver(record) {
+  overlay.classList.remove('attract');
   showOverlay(`
     <div class="ov-title red">GAME OVER</div>
     ${record ? '<div class="record">★ NEW BEST SCORE ★</div>' : ''}
@@ -925,7 +1256,7 @@ function showOver(record) {
 }
 function togglePause() {
   if (state === 'playing') { state = 'paused'; stopAllSounds(); showPause(); }
-  else if (state === 'paused') { state = 'playing'; hideOverlay(); }
+  else if (state === 'paused') { state = 'playing'; if (attract.driving) showMenuAttract(); else hideOverlay(); }
 }
 
 /* ================= input ================= */
@@ -994,6 +1325,13 @@ function pollGamepad() {
     padKeys.down = !!b[13];
 
     const pressed = (i) => b[i] && !pad.prev[i]; // edge-triggered: once per press
+    // attract mode: the first pad button hands the demo to the player as a
+    // fresh game (START just pauses it, like a player pause)
+    if (attract.driving && (state === 'playing' || state === 'paused') && (pressed(0) || pressed(1) || pressed(2) || pressed(3))) {
+      attract.driving = false;
+      startGame();
+    }
+    if (attract.driving && (state === 'menu' || state === 'over') && (pressed(0) || pressed(9))) attract.driving = false;
     if (pressed(0)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else hardDrop(); } // A
     if (pressed(1)) { initAudio(); rotate(1); }                                                              // B
     if (pressed(2)) { initAudio(); rotate(-1); }                                                             // X
@@ -1016,6 +1354,7 @@ function pollGamepad() {
   for (const d of ['left', 'right', 'down']) {
     if (eff[d] && !effPrev[d]) {
       initAudio(); // a d-pad-only gamepad press must also unlock the audio context
+      if (attract.driving && (state === 'playing' || state === 'paused')) { attract.driving = false; startGame(); } // d-pad grab: fresh game
       if (d === 'down') {
         gravAcc = 0;
         if (state === 'playing' && piece && !clearAnim && tryMove(0, 1)) addScore(1);
@@ -1034,6 +1373,13 @@ window.addEventListener('keydown', (e) => {
   if (c === 'ArrowLeft' || c === 'ArrowRight' || c === 'ArrowDown' || c === 'ArrowUp' || c === 'Space') e.preventDefault();
   if (e.repeat) return;
   initAudio();
+  // attract mode: the first real keypress hands the game back to the
+  // player — always as a FRESH game (never the demo's board in progress).
+  // M is just a preference; P/Esc pause the demo instead of grabbing it.
+  if (attract.driving && c !== 'KeyM' && c !== 'KeyP' && c !== 'Escape') {
+    attract.driving = false;
+    if (state === 'playing' || state === 'paused') startGame();
+  }
   switch (c) {
     case 'ArrowLeft': case 'KeyA':
       kb.left = true; break;
@@ -1087,7 +1433,8 @@ boardWrap.addEventListener('touchend', (e) => {
   const dy = t.clientY - touchStart.y;
   const dt = performance.now() - touchStart.t;
   touchStart = null;
-  if (state === 'menu' || state === 'over') { startGame(); return; }
+  if (state === 'menu' || state === 'over') { if (attract.driving) attract.driving = false; startGame(); return; }
+  if (attract.driving) { attract.driving = false; startGame(); } // a tap or swipe grabs the demo as a fresh game
   if (Math.abs(dx) < 22 && Math.abs(dy) < 22) { if (dt < 260) rotate(1); return; }
   if (Math.abs(dx) > Math.abs(dy)) moveStep(dx > 0 ? 1 : -1);
   else if (dy > 0) hardDrop();
@@ -1095,7 +1442,8 @@ boardWrap.addEventListener('touchend', (e) => {
 });
 $('board').addEventListener('click', () => {
   initAudio();
-  if (state === 'menu' || state === 'over') startGame();
+  if (state === 'menu' || state === 'over') { if (attract.driving) attract.driving = false; startGame(); }
+  else if (state === 'playing' && attract.driving) { attract.driving = false; startGame(); } // a click grabs the demo as a fresh game
 });
 
 /* ================= update ================= */
@@ -1288,7 +1636,123 @@ window.__neonblocks = {
   get lines() { return lines; },
   get level() { return level; },
   get queue() { return queue; },
+  get attractDriving() { return attract.driving; },
 };
+
+/* ================= attract mode (demo bot) =================
+ * The demo bot plays the game itself so the board is always alive:
+ *  - ~1.5s after the page loads it starts a demo game behind the
+ *    "PRESS ENTER TO START" prompt (unless the player already started);
+ *  - every piece is planned with NBPlanner (depth-2 lookahead, the same
+ *    planner the Firefox bot in neonbot/ uses: hold, T-spins, b2b, combo);
+ *  - it has NO score goal and NO piece cap (the old 100,000-point goal /
+ *    400-piece cap from neonbot/bot.js are gone): it plays until it tops
+ *    out, waits on the game-over screen, then starts a new game and keeps
+ *    going indefinitely;
+ *  - the menu text ("NEON BLOCKS · PRESS ENTER TO START") stays on screen
+ *    the whole time the demo plays — light backdrop, demo visible behind it
+ *    — and disappears only when the player actually starts;
+ *  - any real input (key / pad / touch) hands the game back to the player as
+ *    a FRESH game — they never play where the demo left off (P/Esc just
+ *    pause the demo, M mutes); the demo resumes after the player's game ends.
+ */
+const attract = { driving: false };
+const botSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const botJitter = (base, spread) => base + Math.random() * spread;
+
+// live game state in the shape NBPlanner.plan() expects
+function botSnap() {
+  return {
+    state, score, lines, level, combo, b2b,
+    piece: piece ? { type: piece.type, rot: piece.rot, x: piece.x, y: piece.y } : null,
+    queue: queue.slice(0, 7),
+    holdType, holdUsed,
+    grid: grid.map(r => r.map(v => (v ? 1 : 0))),
+  };
+}
+
+// drive one piece: hold (if planned) -> rotate -> move -> hard drop,
+// one human-pace step at a time so the demo stays watchable
+async function botPlayPiece() {
+  // wait out the line-clear animation (piece === null for ~330-500ms)
+  for (let i = 0; i < 40; i++) {
+    if (!attract.driving || state !== 'playing') return;
+    if (piece) break;
+    await botSleep(60);
+  }
+  if (!attract.driving || state !== 'playing' || !piece) return;
+
+  // "think" for a moment
+  await botSleep(botJitter(280, 340));
+  if (!attract.driving || state !== 'playing' || !piece) return;
+
+  const plan = NBPlanner.plan(botSnap(), 2);
+  if (!plan) { hardDrop(); return; } // nothing playable left — just drop
+
+  // 1) hold first, if planned (plan.tr/plan.tx target the piece that comes out)
+  if (plan.held) {
+    doHold();
+    await botSleep(140);
+  }
+  if (!attract.driving || state !== 'playing' || !piece) return;
+
+  // 2) rotate to the planned state (shortest way), one press at a time
+  let delta = (plan.tr - piece.rot + 4) % 4;
+  if (delta > 2) delta -= 4;
+  for (let i = 0; i < Math.abs(delta); i++) {
+    if (!attract.driving || state !== 'playing' || !piece) return;
+    const r0 = piece.rot;
+    rotate(delta > 0 ? 1 : -1);
+    if (piece.rot === r0) break; // all kicks blocked — don't burn lock delay
+    await botSleep(botJitter(100, 40));
+  }
+  if (!attract.driving || state !== 'playing' || !piece) return;
+
+  // 3) align horizontally, one cell at a time
+  for (let guard = 0; guard < 12; guard++) {
+    const d = plan.tx - piece.x;
+    if (d === 0) break;
+    if (!attract.driving || state !== 'playing' || !piece) return;
+    if (!moveStep(d > 0 ? 1 : -1)) break;
+    await botSleep(botJitter(80, 40));
+  }
+
+  // 4) hard drop (locks instantly)
+  if (attract.driving && state === 'playing' && piece) hardDrop();
+}
+
+// the endless attract loop: menu/over -> (brief wait) -> demo game ->
+// over -> demo game -> ... yielding to the player on any real input
+async function attractLoop() {
+  while (true) {
+    if (attract.driving && state === 'playing') {
+      await botPlayPiece();
+      continue;
+    }
+    if (attract.driving && state === 'over') {
+      // demo topped out: let the game-over overlay sit for a moment
+      // (the player can still press ENTER to take over), then start fresh
+      let waited = 0;
+      while (attract.driving && state === 'over' && waited < 2400) {
+        await botSleep(120);
+        waited += 120;
+      }
+      if (attract.driving && state === 'over') startGame();
+      continue;
+    }
+    if (!attract.driving && (state === 'menu' || state === 'over')) {
+      // the player's turn to start: give them a beat, then demo again
+      await botSleep(state === 'menu' ? 1500 : 3000);
+      if (!attract.driving && (state === 'menu' || state === 'over')) {
+        attract.driving = true;
+        startGame();
+      }
+      continue;
+    }
+    // player's game in progress (or the demo is paused) — wait it out
+    await botSleep(150);
+  }
+}
 
 /* ================= main loop ================= */
 let lastTs = performance.now();
@@ -1310,6 +1774,7 @@ buildSprites();
 buildSparks();
 updateHUD();
 showMenu();
+attractLoop().catch((e) => console.error('attract:', e));
 requestAnimationFrame(loop);
 })();
 </script>
