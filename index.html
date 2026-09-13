@@ -293,6 +293,51 @@
   /* ---------- Project list spacing ---------- */
   .project-card + .project-card { margin-top: 24px; }
 
+  /* ---------- Collapsible project groups ---------- */
+  .project-group + .project-group { margin-top: 30px; }
+
+  .group-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 2px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+  }
+
+  .group-heading::-webkit-details-marker { display: none; }
+
+  .group-heading:hover { color: var(--text-color); }
+
+  .group-heading:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  .group-heading .chevron {
+    flex: none;
+    transition: transform 0.25s ease;
+  }
+
+  .project-group[open] > .group-heading .chevron { transform: rotate(180deg); }
+
+  .group-heading::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--card-border);
+  }
+
+  .group-cards { padding-top: 18px; }
+
   /* ---------- Neon Blocks preview (CSS mock of the game) ---------- */
   .project-preview.dark {
     background: linear-gradient(160deg, #0b1026 0%, #070a18 100%);
@@ -568,6 +613,13 @@
   <section class="section container fade-in d2" id="projects">
     <div class="section-title">Projects</div>
 
+    <details class="project-group" open>
+      <summary class="group-heading">
+        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        Utilities
+      </summary>
+      <div class="group-cards">
+
     <a class="project-card" href="visualizer.html" style="text-decoration:none;color:inherit;">
       <div class="project-info">
         <h2>Display Scaling Visualizer</h2>
@@ -600,43 +652,6 @@
               <div class="l3">Integer scaling</div>
             </div>
           </div>
-        </div>
-      </div>
-    </a>
-
-    <a class="project-card" href="neonblocks.html" style="text-decoration:none;color:inherit;">
-      <div class="project-info">
-        <h2>Neon Blocks</h2>
-        <p>
-          A neon-flavored take on the classic block-stacking game. Drop and rotate
-          pieces to clear lines, chain combos, and push your score higher as the
-          levels ramp up — playable with keyboard or gamepad, wrapped in a glowing
-          synthwave look.
-        </p>
-        <div class="tags">
-          <span class="tag highlight">JavaScript</span>
-          <span class="tag">HTML</span>
-          <span class="tag">CSS</span>
-          <span class="tag">Arcade</span>
-          <span class="tag">Game</span>
-        </div>
-        <div class="project-actions">
-          <span class="btn btn-primary">Play Game
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </span>
-          <span class="btn btn-secondary" onclick="event.stopPropagation(); window.open('https://github.com/ronfar623/ronfar623.github.io', '_blank');">Source</span>
-        </div>
-      </div>
-      <div class="project-preview dark" aria-hidden="true">
-        <div class="mock-playfield">
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell c"></div><div class="mock-cell c"></div><div class="mock-cell c"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell c"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell y"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell p"></div><div class="mock-cell y"></div><div class="mock-cell"></div><div class="mock-cell"></div>
-          <div class="mock-cell c"></div><div class="mock-cell m"></div><div class="mock-cell p"></div><div class="mock-cell y"></div><div class="mock-cell c"></div><div class="mock-cell m"></div>
         </div>
       </div>
     </a>
@@ -684,6 +699,53 @@
           <div class="mock-key w"></div>
           <div class="mock-key w"></div>
           <div class="mock-key w"></div>
+        </div>
+      </div>
+    </a>
+
+      </div>
+    </details>
+
+    <details class="project-group" open>
+      <summary class="group-heading">
+        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        Games
+      </summary>
+      <div class="group-cards">
+
+    <a class="project-card" href="neonblocks.html" style="text-decoration:none;color:inherit;">
+      <div class="project-info">
+        <h2>Neon Blocks</h2>
+        <p>
+          A neon-flavored take on the classic block-stacking game. Drop and rotate
+          pieces to clear lines, chain combos, and push your score higher as the
+          levels ramp up — playable with keyboard or gamepad, wrapped in a glowing
+          synthwave look.
+        </p>
+        <div class="tags">
+          <span class="tag highlight">JavaScript</span>
+          <span class="tag">HTML</span>
+          <span class="tag">CSS</span>
+          <span class="tag">Arcade</span>
+          <span class="tag">Game</span>
+        </div>
+        <div class="project-actions">
+          <span class="btn btn-primary">Play Game
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+          <span class="btn btn-secondary" onclick="event.stopPropagation(); window.open('https://github.com/ronfar623/ronfar623.github.io', '_blank');">Source</span>
+        </div>
+      </div>
+      <div class="project-preview dark" aria-hidden="true">
+        <div class="mock-playfield">
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell c"></div><div class="mock-cell c"></div><div class="mock-cell c"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell c"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell y"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell p"></div><div class="mock-cell y"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          <div class="mock-cell c"></div><div class="mock-cell m"></div><div class="mock-cell p"></div><div class="mock-cell y"></div><div class="mock-cell c"></div><div class="mock-cell m"></div>
         </div>
       </div>
     </a>
@@ -741,6 +803,9 @@
         </div>
       </div>
     </a>
+
+      </div>
+    </details>
   </section>
 </main>
 
