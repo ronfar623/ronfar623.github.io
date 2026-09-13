@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sawayama Solitaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ theme ============ */
+:root{
+  --bg:#06080f;
+  --panel:#0b111e;
+  --line:rgba(148,180,255,.12);
+  --accent:#5ad1e0;
+  --gold:#e9c46a;
+  --text:#dfe6f3;
+  --dim:#7d8aa5;
+  --font-d:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --font-m:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; }
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-d);
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-tap-highlight-color:transparent;
+}
+/* CRT scanlines — decorative, never intercept input */
+body::before{
+  content:""; position:fixed; inset:0; z-index:90; pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+/* ambient glow behind the app */
+body::after{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(90% 50% at 50% -10%, rgba(90,209,224,.07), transparent 60%),
+    radial-gradient(120% 90% at 50% 115%, rgba(16,26,54,.55), transparent 60%);
+}
+#app{
+  position:relative; z-index:1; height:100%;
+  display:flex; flex-direction:column; gap:10px;
+  max-width:1180px; margin:0 auto;
+  padding:14px 18px 10px;
+}
+/* ============ header ============ */
+header{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+/* The title's letter-spacing leaves one trailing space in its layout box; the
+   negative margin cancels it so the badge below centers on the visible
+   glyphs. Don't remove without re-checking the centering. */
+.brand .title{ font-weight:700; font-size:17px; letter-spacing:.34em; margin-right:-.34em; }
+.brand .title .thin{ font-weight:400; color:var(--dim); }
+/* pill stays fitted to its text and is centered under the title */
+.badge{
+  margin:6px auto 0; display:block; width:max-content;
+  font-family:var(--font-m); font-size:9px; letter-spacing:.22em;
+  color:var(--accent); border:1px solid rgba(90,209,224,.3);
+  padding:3px 10px; border-radius:999px; opacity:.85;
+}
+.hud{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.stat{ display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.stat label{ font-family:var(--font-m); font-size:8px; letter-spacing:.26em; color:var(--dim); }
+.stat span{ font-family:var(--font-m); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+#clock{ color:var(--accent); }
+.btns{ display:flex; gap:8px; }
+button{
+  font-family:var(--font-m); font-size:10px; letter-spacing:.14em;
+  color:var(--dim); background:rgba(255,255,255,.03);
+  border:1px solid var(--line); border-radius:9px;
+  padding:8px 13px; cursor:pointer;
+  transition:color .15s, border-color .15s, box-shadow .15s, transform .05s;
+  touch-action:manipulation;
+}
+button:hover{ color:var(--accent); border-color:rgba(90,209,224,.55); box-shadow:0 0 14px rgba(90,209,224,.16); }
+button:active{ transform:translateY(1px); }
+button:disabled{ opacity:.35; cursor:default; box-shadow:none; color:var(--dim); }
+button.primary{
+  color:#07222b; font-weight:600;
+  background:linear-gradient(180deg,#6fdbe8,#43b9c8);
+  border-color:transparent;
+}
+button.primary:hover{ color:#07222b; box-shadow:0 0 18px rgba(90,209,224,.4); }
+button .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; vertical-align:1px; box-shadow:0 0 6px var(--accent); }
+button.muted .dot{ background:#4a5468; box-shadow:none; }
+/* ============ board ============ */
+#board{
+  position:relative; flex:1; min-height:0;
+  border-radius:18px; border:1px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(90,209,224,.045), transparent 55%),
+    var(--panel);
+  box-shadow:inset 0 0 80px rgba(0,0,0,.45), 0 24px 70px rgba(0,0,0,.5);
+  touch-action:none; user-select:none; -webkit-user-select:none;
+  overflow:hidden;
+  --cw:90px; --ch:128px; --cr:8px;
+}
+#board.busy{ pointer-events:none; }
+#board.dragging, #board.dragging *{ cursor:grabbing !important; }
+/* ?now=1 synchronous deal: kill transitions so the first painted frame is
+   already the final layout (first-frame screenshots / jsdom) */
+#board.notrans .card{ transition:none !important; }
+/* ============ slots ============ */
+#slots{ position:absolute; inset:0; }
+.slot{
+  position:absolute; border-radius:var(--cr);
+  border:1px dashed rgba(150,180,255,.14);
+  display:flex; align-items:center; justify-content:center;
+  transition:border-color .15s, box-shadow .15s, background .15s;
+}
+.slot.tab{ border-color:rgba(150,180,255,.07); }
+.slot.found{ border-style:solid; border-color:rgba(150,180,255,.13); }
+/* legal drop highlight while dragging */
+.slot.target{
+  border-style:solid; border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(90,209,224,.20), 0 0 22px rgba(90,209,224,.30);
+  background:rgba(90,209,224,.05);
+}
+.slot .glyph{ font-size:calc(var(--cw)*.5); color:rgba(150,180,255,.11); }
+.slot .tag{
+  font-family:var(--font-m); font-size:8px; letter-spacing:.24em;
+  color:rgba(150,180,255,.4); display:none;
+}
+/* the free cell is the stock slot itself; it lights gold once unlocked */
+.slot.free.on{ border-color:rgba(233,196,106,.55); }
+.slot.free.on .tag{ display:block; color:rgba(233,196,106,.65); }
+/* Stock count, rendered inside the bottom of the stock card: it must outrank
+   the stock stack (z 400–423), and pointer-events are off so clicks fall
+   through to the (clickable) card beneath. */
+#stockCount{
+  position:absolute; z-index:450;
+  text-align:center; pointer-events:none;
+  font-family:var(--font-m); font-size:9px; letter-spacing:.2em;
+  color:var(--dim); opacity:.75;
+}
+/* ============ cards ============ */
+#cards{ position:absolute; inset:0; }
+.card{
+  position:absolute; top:0; left:0;
+  width:var(--cw); height:var(--ch);
+  transition:transform .22s cubic-bezier(.22,.85,.3,1.12);
+  will-change:transform;
+  cursor:grab;
+}
+.card.drag{ transition:none; cursor:grabbing; }
+.card-inner{
+  position:absolute; inset:0; border-radius:var(--cr);
+  background:linear-gradient(160deg,#fbf9f4,#efece3);
+  border:1px solid rgba(0,0,0,.20);
+  box-shadow:0 1px 2px rgba(0,0,0,.35), 0 6px 16px rgba(0,0,0,.22);
+  overflow:hidden;
+}
+.card.drag .card-inner{
+  box-shadow:0 18px 34px rgba(0,0,0,.55), 0 5px 12px rgba(0,0,0,.35);
+}
+/* Cards buried in a stack (stock pile, completed foundations, pre-deal pile):
+   no drop shadow, or dozens of overlapping shadows pool into a dark halo */
+.card.stacked .card-inner{ box-shadow:none; }
+.card .corner{
+  position:absolute; top:calc(var(--cw)*.045); left:calc(var(--cw)*.055);
+  display:flex; flex-direction:column; align-items:center; line-height:1;
+  pointer-events:none;
+}
+.card .corner .rank{
+  font-family:var(--font-d); font-weight:700;
+  font-size:calc(var(--cw)*.185);
+}
+.card .corner .suit{
+  font-size:calc(var(--cw)*.14);
+  margin-top:calc(var(--cw)*.008);
+}
+.card .corner.br{ top:auto; left:auto; bottom:calc(var(--cw)*.045); right:calc(var(--cw)*.055); transform:rotate(180deg); }
+.card .pip{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:calc(var(--cw)*.40); opacity:.13; pointer-events:none;
+}
+.card.red  .rank, .card.red  .suit, .card.red  .pip{ color:#d64560; }
+.card.black .rank, .card.black .suit, .card.black .pip{ color:#252b45; }
+/* card back ("S" = Sawayama); face-down cards hide the face and show this */
+.card .back{
+  position:absolute; inset:calc(var(--cw)*.035);
+  border-radius:calc(var(--cr)*.75);
+  border:1px solid rgba(90,209,224,.30);
+  background:
+    repeating-linear-gradient(135deg, rgba(90,209,224,.10) 0 2px, transparent 2px 6px),
+    linear-gradient(160deg,#182a4d,#0d1830);
+  display:flex; align-items:center; justify-content:center;
+}
+.card .back b{
+  font-family:var(--font-d); font-weight:700;
+  font-size:calc(var(--cw)*.30);
+  color:rgba(90,209,224,.60); letter-spacing:.04em;
+  text-shadow:0 0 12px rgba(90,209,224,.35);
+}
+.card:not(.down) .back{ display:none; }
+.card.down .corner, .card.down .pip{ display:none; }
+.card.down{ cursor:default; }
+/* deal flip + invalid-move shake */
+@keyframes flipIn{ 0%{transform:scaleX(1)} 45%{transform:scaleX(.06)} 100%{transform:scaleX(1)} }
+.card.flip .card-inner{ animation:flipIn .3s ease-in-out; }
+@keyframes shakeX{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+.card.shake .card-inner{ animation:shakeX .2s; }
+/* ============ overlays ============ */
+.overlay{
+  position:fixed; inset:0; z-index:50;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(5,8,15,.72); backdrop-filter:blur(6px);
+  opacity:0; pointer-events:none; transition:opacity .3s;
+}
+.overlay.show{ opacity:1; pointer-events:auto; }
+/* ?now=1: the win overlay fades in via transition, which never progresses in
+   a first-frame capture — skip the transition for sync wins */
+.overlay.notrans, .overlay.notrans .panel{ transition:none !important; }
+.panel{
+  text-align:center; padding:38px 54px 34px;
+  border-radius:20px;
+  background:linear-gradient(180deg,#111b31,#0b1322);
+  border:1px solid rgba(90,209,224,.25);
+  box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(90,209,224,.08);
+  transform:translateY(14px) scale(.97);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1.3);
+  max-width:92vw;
+}
+.overlay.show .panel{ transform:none; }
+.panel h1{
+  font-size:26px; letter-spacing:.34em; font-weight:700;
+  color:var(--accent); text-shadow:0 0 24px rgba(90,209,224,.45);
+}
+.panel h1.gold{ color:var(--gold); text-shadow:0 0 24px rgba(233,196,106,.4); }
+.panel .sub{ margin-top:10px; font-family:var(--font-m); font-size:10px; letter-spacing:.22em; color:var(--dim); }
+.panel .credit{ margin-top:8px; font-family:var(--font-m); font-size:9px; letter-spacing:.22em; color:var(--dim); }
+.panel .credit a{ color:var(--accent); text-decoration:none; }
+.panel .credit a:hover{ text-decoration:underline; }
+.panel .winstats{ display:flex; gap:26px; justify-content:center; margin:22px 0 24px; }
+.panel .winstats .stat span{ font-size:20px; }
+.panel .winstats .stat label{ letter-spacing:.2em; }
+.panel .best{ font-family:var(--font-m); font-size:10px; letter-spacing:.2em; color:var(--gold); margin-bottom:18px; min-height:14px; }
+.panel .rules{
+  text-align:left; margin:20px 0 24px;
+  font-size:12.5px; line-height:1.75; color:var(--text);
+  display:grid; gap:9px;
+}
+.panel .rules li{ list-style:none; position:relative; padding-left:20px; }
+.panel .rules li::before{ content:"◆"; position:absolute; left:0; top:0; font-size:8px; color:var(--accent); line-height:2.6; }
+.panel .rules b{ color:var(--accent); font-weight:600; }
+.panel .hint{ font-family:var(--font-m); font-size:9.5px; letter-spacing:.14em; color:var(--dim); margin-top:14px; line-height:1.9; }
+/* ============ confetti (win celebration, CSS-only) ============ */
+#confetti{ position:fixed; inset:0; z-index:55; pointer-events:none; overflow:hidden; }
+.conf{
+  position:absolute; top:-6vh;
+  width:9px; height:15px; border-radius:2px; opacity:.95;
+  animation:confFall var(--d) cubic-bezier(.3,.4,.6,1) var(--delay) forwards;
+}
+@keyframes confFall{
+  0%{ transform:translate(0,0) rotate(0deg); opacity:1; }
+  100%{ transform:translate(var(--tx),110vh) rotate(var(--rot)); opacity:.85; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="title">SAWAYAMA<span class="thin"> SOLITAIRE</span></div>
+      <div class="badge">KLODIKE - REIMAGINED</div>
+    </div>
+    <div class="hud">
+      <div class="stat"><label>TIME</label><span id="clock">00:00</span></div>
+      <div class="stat"><label>MOVES</label><span id="moves">0</span></div>
+      <div class="stat"><label>WINS</label><span id="wins">0</span></div>
+      <div class="btns">
+        <button id="undoBtn" disabled>UNDO</button>
+        <button id="soundBtn" title="toggle sound"><span class="dot"></span>SOUND</button>
+        <button id="rulesBtn">RULES</button>
+        <button id="newBtn" class="primary">NEW GAME</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="board" aria-label="Sawayama Solitaire board">
+    <div id="slots"></div>
+    <div id="cards"></div>
+    <div id="stockCount">24</div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h1>GAME&nbsp;WON</h1>
+    <div class="sub">ALL FOUNDATIONS COMPLETE</div>
+    <div class="best" id="bestLine"></div>
+    <div class="winstats">
+      <div class="stat"><label>TIME</label><span id="winTime">–</span></div>
+      <div class="stat"><label>MOVES</label><span id="winMoves">–</span></div>
+      <div class="stat"><label>WINS</label><span id="winWins">–</span></div>
+    </div>
+    <button id="againBtn" class="primary">PLAY AGAIN</button>
+  </div>
+</div>
+
+<div class="overlay" id="help">
+  <div class="panel">
+    <h1>THE&nbsp;RULES</h1>
+    <div class="sub">KLODIKE - REIMAGINED · SINGLE PASS</div>
+    <div class="credit">GAME RULES BY <a href="https://www.zachtronics.com" target="_blank" rel="noopener">ZACHTRONICS</a></div>
+    <ul class="rules">
+      <li>Every tableau card is dealt <b>face up</b>. Only top cards or proper descending, alternating-color runs can be moved.</li>
+      <li><b>Any card</b> (or run) may fill an empty column — not just kings.</li>
+      <li>The deck is drawn <b>three at a time, one pass only</b>. It never reshuffles.</li>
+      <li>When the deck runs out, its slot becomes a <b>free cell</b> holding one card.</li>
+      <li>Foundation cards are <b>final</b> — they never come back down.</li>
+      <li>There's <b>no auto-mover</b>: the computer never places a card for you. Drag it onto a foundation — or double-click it — to send it up. Miss your chance, and that's part of the challenge.</li>
+    </ul>
+    <div class="hint">DRAG TO MOVE · CLICK DECK TO DRAW · DOUBLE-CLICK TO SEND UP<br>WIN = BUILD ALL FOUR SUITS, ACE TO KING</div>
+    <button id="helpClose" class="primary" style="margin-top:20px">GOT IT</button>
+  </div>
+</div>
+
+<div id="confetti"></div>
+
+<script>
+'use strict';
+(()=>{
+/*
+ * Sawayama Solitaire — the single-pass Klondike (rules by Zachtronics).
+ *
+ * One IIFE, one Game class, no dependencies. Cards are persistent divs
+ * positioned with transform:translate; every render() recomputes all
+ * positions from plain state (tab / found / stock / waste / free), so
+ * undo is just restoring a snapshot of that state.
+ *
+ * Zones: 7 tableau columns (dealt fully face-up), the stock (top-left,
+ * 24 cards, drawn 3 at a time, single pass), the waste (fan to the right
+ * of the stock), the free cell (the stock slot itself, unlocked when the
+ * stock empties), and 4 foundations (left column; cards there are final).
+ *
+ * Debug/screenshot URL params (read in newGame()):
+ *   ?seed=N     deterministic deck (mulberry32)
+ *   ?instant=1  collapse the deal stagger
+ *   ?now=1      fully synchronous deal (tests / first-frame screenshots)
+ *   ?mid=N      after the deal, play N pseudo-random legal moves
+ *   ?win=1      with ?now=1, complete all foundations and send the kings up
+ */
+
+/* ============================== helpers ============================== */
+const $ = (s, el=document) => el.querySelector(s);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const RANK_LABEL = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+// Horizontal center of the rank+suit corner label (widest rank "10") as a
+// fraction of card width, measured from rendered Space Grotesk Bold. The
+// waste fan step is 2 × this, which puts each label's center exactly midway
+// between one card's left edge and the next card's left edge, so the widest
+// rank label is never covered by its neighbour. The constant gives a
+// deterministic first layout before the webfont has loaded; once the fonts
+// are settled the real rendered width is measured and the layout refined if
+// it differs (e.g. an offline fallback font). Re-measure this value if the
+// corner CSS changes: probe "10" on a 100px card, take center / 100.
+const CORNER_C = 0.1568;
+const SUIT_GLYPH = ['\u2660','\u2665','\u2666','\u2663']; // ♠♥♦♣
+const isRed = s => s===1 || s===2;
+const fmtTime = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+// small deterministic PRNG, used for ?seed decks
+function mulberry32(a){
+  return function(){
+    a|=0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a>>>15, 1|a);
+    t = t + Math.imul(t ^ t>>>7, 61|t) ^ t;
+    return ((t ^ t>>>14) >>> 0) / 4294967296;
+  };
+}
+
+/* ============================== sound ============================== */
+/* All SFX are synthesized WebAudio blips — no audio assets. The context is
+   created lazily on first user gesture (autoplay policy) and tolerates a
+   missing AudioContext (jsdom). Mute persists in localStorage. */
+const SFX = {
+  ctx:null,
+  muted: localStorage.getItem('ss_muted') === '1',
+  ensure(){
+    try{
+      if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    }catch(e){ this.ctx = null; }
+  },
+  blip(freq, dur, type='sine', gain=0.1, slide=0, delay=0){
+    if(this.muted) return;
+    this.ensure();
+    if(!this.ctx) return;
+    try{
+      const t0 = this.ctx.currentTime + delay;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq+slide), t0+dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+      o.connect(g).connect(this.ctx.destination);
+      o.start(t0); o.stop(t0+dur+0.03);
+    }catch(e){}
+  },
+  tick(){ this.blip(1500 + Math.random()*500, .035, 'triangle', .04, -300); },
+  move(){ this.blip(300, .06, 'triangle', .09, -60); this.blip(900, .04, 'sine', .045); },
+  /* send-up chime, one semitone per rank above A4 */
+  up(rank){
+    const f = 392 * Math.pow(2, (Math.min(rank,13)-1)/12);
+    this.blip(f, .16, 'sine', .13);
+    this.blip(f*1.5, .12, 'sine', .05, 0, .03);
+  },
+  bad(){ this.blip(140, .12, 'sawtooth', .06, -40); },
+  deal(){ this.blip(220, .07, 'triangle', .07, -40); },
+  win(){ [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f,i)=>this.blip(f, .3, 'sine', .12, 0, i*.11)); },
+};
+
+/* ============================== game ============================== */
+class Game{
+  constructor(boardEl){
+    this.boardEl = boardEl;
+    this.cardsEl = $('#cards');
+    this.slotsEl = $('#slots');
+    this.stockCountEl = $('#stockCount');
+    this.clockEl = $('#clock');
+    this.movesEl = $('#moves');
+    this.winsEl = $('#wins');
+    this.overlayEl = $('#overlay');
+    this.helpEl = $('#help');
+    this.confettiEl = $('#confetti');
+    this.winsCount = +localStorage.getItem('ss_wins') || 0;
+
+    // ?seed makes the whole run reproducible (deck order and, in ?mid/?win
+    // mode, the pseudo-player's choices all come from this rng)
+    const seed = parseInt(new URLSearchParams(location.search).get('seed'), 10);
+    this.rng = Number.isFinite(seed) ? mulberry32(seed) : Math.random;
+
+    this.tab = []; this.found = [[],[],[],[]];
+    this.stock = []; this.waste = [];
+    this.free = null; this.freeActive = false;
+    this.byCardId = new Map(); this.byKey = new Map();
+    this.phase = 'idle'; this.won = false; this.moves = 0;
+    this.history = []; this.timers = [];
+    this.t0 = 0; this.clockId = null;
+    this.pd = null; this.drag = null; this.lastTap = null;
+    this.bw = 1000; this.bh = 700;
+    this.cornerC = CORNER_C;
+
+    this.initSlots();
+    this.layout();
+    this.bindInput();
+    this.bindButtons();
+    this.newGame();
+
+    // Refine the waste geometry once the webfont has settled: the first
+    // layout used the CORNER_C constant (deterministic, and exactly right
+    // for the rank font), but an offline fallback font can render wider or
+    // narrower labels — re-measure and re-layout once if they differ.
+    if(document.fonts && document.fonts.ready){
+      document.fonts.ready.then(() => {
+        const m = this.measureCorner();
+        if(m > 0 && Math.abs(m / 100 - this.cornerC) > 0.005){
+          this.cornerC = m / 100;
+          this.layout();
+          this.render();
+        }
+      });
+    }
+  }
+
+  /* ---------- setup ---------- */
+  initSlots(){
+    // Static slot elements: the free cell (doubles as the stock slot), the
+    // waste strip, the four foundations (suit glyph), seven tableau columns
+    const mk = (cls, tagText, glyph) => {
+      const d = document.createElement('div');
+      d.className = 'slot ' + cls;
+      if(glyph){
+        const g = document.createElement('span');
+        g.className = 'glyph'; g.textContent = glyph;
+        d.appendChild(g);
+      } else if(tagText){
+        const s = document.createElement('span');
+        s.className = 'tag'; s.textContent = tagText;
+        d.appendChild(s);
+      }
+      this.slotsEl.appendChild(d);
+      return d;
+    };
+    this.freeSlotEl  = mk('free', 'FREE CELL');
+    this.wasteSlotEl = mk('waste empty');
+    this.foundSlotEls = [0,1,2,3].map(f => mk('found', null, SUIT_GLYPH[f]));
+    this.tabSlotEls = [0,1,2,3,4,5,6].map(() => mk('tab'));
+  }
+
+  // 52 cards, Fisher–Yates shuffled with the game rng
+  makeDeck(){
+    const deck = [];
+    for(let s=0; s<4; s++)
+      for(let r=1; r<=13; r++)
+        deck.push({ id: s*13 + (r-1), suit: s, rank: r, x:0, y:0, el:null });
+    for(let i=deck.length-1; i>0; i--){
+      const j = Math.floor(this.rng() * (i+1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck;
+  }
+
+  newGame(){
+    this.clearTimers();
+    this.history.length = 0;
+    this.won = false; this.phase = 'dealing'; this.moves = 0;
+    this.free = null; this.freeActive = false;
+    this.waste = []; this.pd = null; this.drag = null;
+    this.boardEl.classList.add('busy');
+    this.overlayEl.classList.remove('show', 'notrans');
+    this.helpEl.classList.remove('show');
+    this.confettiEl.innerHTML = '';
+
+    // Deal 1..7 per column (all face up — rule 1), keep the remainder (24)
+    // as the stock. The original "essentially never" opens with an exposed
+    // ace, so reshuffle up to 50 times if any column's top card is one.
+    let tries = 0;
+    do{
+      this.tab = [[],[],[],[],[],[],[]];
+      const deck = this.makeDeck();
+      for(let r=0; r<7; r++)
+        for(let c=r; c<7; c++)
+          this.tab[c].push(deck.pop());
+      this.stock = deck;
+      tries++;
+    }while(this.tab.some(col => col[col.length-1].rank === 1) && tries < 50);
+    this.found = [[],[],[],[]];
+
+    // One persistent element per card. Everything starts stacked at the
+    // stock position; only the top stock card keeps its shadow, or 52
+    // overlapping shadows pool into a dark halo before the fly-out begins.
+    this.cardsEl.innerHTML = '';
+    this.byCardId = new Map(); this.byKey = new Map();
+    const all = [...this.tab.flat(), ...this.stock];
+    for(const card of all){
+      const el = this.makeCardEl(card);
+      card.el = el;
+      this.cardsEl.appendChild(el);
+      this.byCardId.set(card.id, card);
+      this.byKey.set(card.suit*16 + card.rank, card);
+      card.x = this.stockPos.x; card.y = this.stockPos.y;
+      const inStock = this.stock.includes(card);
+      el.classList.toggle('stacked', card !== this.stock[this.stock.length-1]);
+      el.style.zIndex = inStock ? 400 : 50;
+      el.style.transform = `translate(${card.x}px,${card.y}px)`;
+    }
+    this.updateStats();
+    void this.boardEl.offsetWidth; // flush the stacked state so the fly-out transitions
+
+    // ?instant=1 collapses the deal stagger; ?now=1 deals synchronously
+    // (tests / first-frame screenshots) and freezes transitions meanwhile
+    const q = new URLSearchParams(location.search);
+    const speed = q.get('instant') === '1' ? 0 : 1;
+    const now = q.get('now') === '1';
+    const midTarget = parseInt(q.get('mid'), 10) || 0;
+    this.syncMode = now;
+    if(now) this.boardEl.classList.add('notrans');
+    const order = [];
+    for(let r=0; r<7; r++)
+      for(let c=r; c<7; c++)
+        order.push({ c, i:r });
+
+    const finish = new Promise(res => {
+      const done = () => {
+        this.render(); // settle the stock stack
+        this.phase = 'play';
+        this.boardEl.classList.remove('busy');
+        this.startTimer();
+        if(now && midTarget){
+          // ?mid: deterministic mid-game state for screenshots — play
+          // pseudo-random legal moves (card play preferred over dealing,
+          // so the board develops), backdate the clock to look lived-in,
+          // and reveal every non-stock card without flip animation
+          let mid = midTarget, guard = 0;
+          while(mid > 0 && guard++ < 500){
+            const ms = this.legalMoves();
+            if(!ms.length) break;
+            const cardMoves = ms.filter(m => !m.deal);
+            const pool = (cardMoves.length && this.rng() < 0.6) ? cardMoves : ms;
+            const m = pool[Math.floor(this.rng() * pool.length)];
+            if(m.deal) this.dealStock();
+            else this.doMove(m.from, m.run, m.to, { force:true });
+            mid--;
+          }
+          this.t0 = Date.now() - 137000; // 02:17 on the clock
+          this.updateClock();
+          const stockIds = new Set(this.stock.map(c => c.id));
+          for(const card of this.byCardId.values())
+            if(!stockIds.has(card.id)) card.el.classList.remove('down');
+          this.render();
+        }
+        if(now && q.get('win') === '1'){
+          // ?win: deterministic win for screenshots — build every
+          // foundation through the queens, shuffle the four kings onto the
+          // waste, then send them up by hand (quiet, so the HUD keeps the
+          // ?mid numbers)
+          const pull = c => {
+            for(let c2=0; c2<7; c2++){ const k=this.tab[c2].indexOf(c); if(k>=0){ this.tab[c2].splice(k,1); return; } }
+            const k=this.waste.indexOf(c); if(k>=0){ this.waste.splice(k,1); return; }
+            const k2=this.stock.indexOf(c); if(k2>=0){ this.stock.splice(k2,1); return; }
+            if(this.free===c) this.free=null;
+            const k3=this.found[c.suit].indexOf(c); if(k3>=0) this.found[c.suit].splice(k3,1);
+          };
+          for(let f=0; f<4; f++){ const k=this.byKey.get(f*16+13); pull(k); this.waste.push(k); }
+          for(let f=0; f<4; f++){
+            const pile = [];
+            for(let r=1; r<=12; r++){ const c=this.byKey.get(f*16+r); pull(c); pile.push(c); }
+            this.found[f] = pile;
+          }
+          this.render();
+          for(let i=0; i<4; i++){
+            const k = this.waste[this.waste.length-1];
+            this.doMove({ type:'waste' }, [k], { type:'foundation', f:k.suit }, { quiet:true, force:true });
+          }
+        }
+        res();
+        if(now) requestAnimationFrame(() => requestAnimationFrame(() => this.boardEl.classList.remove('notrans')));
+      };
+      if(now) return done();
+      // Staggered fly-out, round-robin like a real deal. L is the column's
+      // final length so each card is placed exactly where render() will
+      // keep it — no snap when the deal finishes.
+      order.forEach((o, k) => {
+        const card = this.tab[o.c][o.i];
+        const t = setTimeout(() => {
+          const L = o.c + 1;
+          const off = L > 1 ? Math.min(this.cardH*0.30, (this.availH - this.cardH)/(L-1)) : 0;
+          card.el.classList.remove('stacked');
+          this.place(card, this.colX(o.c), this.tabY + o.i*off, 100 + o.c*10 + o.i);
+          SFX.tick();
+        }, 150 + k*32*speed);
+        this.timers.push(t);
+      });
+      const t = setTimeout(done, 150 + order.length*32*speed + 320);
+      this.timers.push(t);
+    });
+    return finish;
+  }
+
+  makeCardEl(card){
+    const el = document.createElement('div');
+    el.className = 'card ' + (isRed(card.suit) ? 'red' : 'black') + (this.stock.includes(card) ? ' down' : '');
+    el.dataset.id = card.id;
+    el.innerHTML =
+      `<div class="card-inner">` +
+      `<div class="corner tl"><span class="rank">${RANK_LABEL[card.rank]}</span><span class="suit">${SUIT_GLYPH[card.suit]}</span></div>` +
+      `<div class="pip">${SUIT_GLYPH[card.suit]}</div>` +
+      `<div class="corner br"><span class="rank">${RANK_LABEL[card.rank]}</span><span class="suit">${SUIT_GLYPH[card.suit]}</span></div>` +
+      `<div class="back"><b>S</b></div>` +
+      `</div>`;
+    return el;
+  }
+
+  /* ---------- lifecycle ---------- */
+  clearTimers(){
+    this.timers.forEach(clearTimeout);
+    this.timers = [];
+    if(this.clockId){ clearInterval(this.clockId); this.clockId = null; }
+  }
+
+  /* ---------- layout ---------- */
+  colX(i){ return this.tabX0 + i * (this.cardW + this.gapX); }
+
+  // Center of the corner label ("10", the widest rank) in px at a 100px
+  // card width — the ratio is scale-invariant. Returns 0 when the DOM
+  // can't measure (jsdom); the caller then keeps the CORNER_C constant.
+  measureCorner(){
+    let probe;
+    try{
+      probe = document.createElement('div');
+      probe.className = 'card';
+      probe.style.cssText = '--cw:100px;--ch:142px;position:absolute;top:0;left:0;visibility:hidden;';
+      probe.innerHTML = `<div class="corner tl"><span class="rank">10</span><span class="suit">${SUIT_GLYPH[0]}</span></div>`;
+      this.cardsEl.appendChild(probe);
+      const pr = probe.getBoundingClientRect();
+      const cr = probe.querySelector('.corner').getBoundingClientRect();
+      const c = pr.width > 0 ? (cr.left - pr.left) + cr.width / 2 : 0;
+      probe.remove();
+      return c;
+    }catch(e){ return 0; }
+  }
+
+  /* Sizes everything and positions the slots. Called on boot, on resize,
+     and (at most once) after the webfont has settled. */
+  layout(w, h){
+    const r = this.boardEl.getBoundingClientRect();
+    this.bw = w || (r.width  || 1000);
+    this.bh = h  || (r.height || 700);
+    this.pad    = clamp(this.bw * 0.018, 10, 26);
+    this.gapV   = clamp(this.bh * 0.016, 8, 18);
+    this.sideGap = clamp(this.bw * 0.012, 10, 22);
+    const gapXest = clamp(this.bw * 0.008, 6, 12);
+
+    // The card size is the tightest of three constraints: 8 card-widths
+    // across (stock + 7 tableau columns), the top row (stock + the
+    // 24-card waste fan, which spans cardW + 23·wasteStep =
+    // (1 + 46·cornerC) card-widths), and 5 card-heights down (top row +
+    // the 4 foundations in the left column).
+    const W8 = (this.bw - 2*this.pad - this.sideGap - 6*gapXest) / 8;
+    const W9 = (this.bw - 2*this.pad - this.sideGap) / (2 + 46*this.cornerC);
+    const H5 = (this.bh - 2*this.pad - 4*this.gapV) / 5;
+    this.cardW = clamp(Math.min(W8, W9, H5 / 1.42), 30, 132);
+    this.cardH = this.cardW * 1.42;
+    this.wasteStep = 2 * this.cornerC * this.cardW;
+    this.wasteW = this.cardW + 23 * this.wasteStep; // exact 24-card fan
+
+    // The playfield is only as wide as the wider of the two rows: the app
+    // (header + board stay aligned) narrows to it instead of the fan
+    // stretching edge-to-edge. gapX then fills the actual width, never
+    // tighter than the estimate that was used for sizing.
+    const topW = 2*this.pad + this.sideGap + this.cardW + this.wasteW;
+    const tabW = 2*this.pad + this.sideGap + 8*this.cardW + 6*gapXest;
+    this.contentW = Math.max(topW, tabW);
+    const appEl = document.getElementById('app');
+    if(appEl) appEl.style.maxWidth = Math.min(this.contentW + 36, 1180) + 'px';
+    this.gapX = clamp((this.contentW - 2*this.pad - this.sideGap - 8*this.cardW) / 6, gapXest, this.cardW);
+
+    this.topY = this.pad;                                // top row (stock + waste)
+    this.tabY = this.pad + this.cardH + this.gapV;       // left column + tableau top
+    this.tabX0 = this.pad + this.cardW + this.sideGap;
+    this.stockPos = { x: this.pad, y: this.pad };        // stock / free cell: top-left
+    this.wasteX = this.stockPos.x + this.cardW + this.sideGap;
+    // The fan is left-anchored: draws append rightward, and the 24th card's
+    // right edge lands exactly on the waste slot's right edge.
+    this.availH = this.bh - this.tabY - this.pad;
+
+    const b = this.boardEl;
+    b.style.setProperty('--cw', this.cardW + 'px');
+    b.style.setProperty('--ch', this.cardH + 'px');
+    b.style.setProperty('--cr', (this.cardW*0.085) + 'px');
+
+    const put = (el, x, y, w2, h2) => {
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+      el.style.width = w2 + 'px'; el.style.height = h2 + 'px';
+    };
+    const W = this.cardW, H = this.cardH;
+    put(this.wasteSlotEl, this.wasteX, this.topY, this.wasteW, H);
+    this.foundSlotEls.forEach((s,f) => put(s, this.pad, this.tabY + f * (H + this.gapV), W, H));
+    put(this.freeSlotEl, this.stockPos.x, this.stockPos.y, W, H);
+    this.tabSlotEls.forEach((s,c) => put(s, this.tabX0 + c * (W + this.gapX), this.tabY, W, this.availH));
+    // The count renders inside the bottom of the stock card (the first
+    // foundation sits directly below the slot, so there's no room for a
+    // label under it); text-align centers it and pointer-events let clicks
+    // through to the card
+    put(this.stockCountEl, this.stockPos.x, this.stockPos.y + H - 17, W, 14);
+
+    // Drop-target rects, cached for hit-testing (tableau columns include
+    // half a gap on each side so drops between columns feel fair)
+    this.rects = {
+      free:  { x:this.stockPos.x, y:this.stockPos.y, w:W, h:H },
+      found: this.foundSlotEls.map((_,f) => ({ x:this.pad, y:this.tabY + f * (H + this.gapV), w:W, h:H })),
+      tab:   this.tabSlotEls.map((_,c) => ({ x:this.tabX0 + c * (W + this.gapX) - this.gapX/2, y:this.tabY, w:W + this.gapX, h:this.availH })),
+    };
+  }
+
+  /* ---------- rendering ---------- */
+  place(card, x, y, z){
+    card.x = x; card.y = y;
+    const el = card.el;
+    el.style.zIndex = z;
+    el.style.transform = `translate(${x}px,${y}px)`;
+  }
+
+  /* Single source of truth: every card is placed from state, and the
+     .stacked (shadow-off) marks are cleared then re-applied per zone. */
+  render(){
+    const W = this.cardW, H = this.cardH;
+    for(const card of this.byCardId.values()) card.el.classList.remove('stacked');
+    // tableau: columns fan down, capped so the longest fits the board
+    for(let c=0; c<7; c++){
+      const col = this.tab[c], L = col.length;
+      const off = L > 1 ? Math.min(H*0.30, (this.availH - H)/(L-1)) : 0;
+      for(let i=0; i<L; i++) this.place(col[i], this.colX(c), this.tabY + i*off, 100 + c*10 + i);
+    }
+    // waste: left-anchored fan at the locked step — each draw appends to
+    // the right and no card ever reflows, so positions are simply the
+    // draw-order index
+    const n = this.waste.length;
+    this.wasteSlotEl.classList.toggle('empty', n === 0);
+    if(n){
+      for(let i=0; i<n; i++)
+        this.place(this.waste[i], this.wasteX + i*this.wasteStep, this.topY, 500 + i);
+    }
+    // stock stack: buried cards carry no shadow, offsets capped at 5 steps
+    const s = this.stock.length, step = Math.max(1, W*0.016);
+    for(let j=0; j<s; j++){
+      const d = Math.min(s-1-j, 5);
+      if(j < s-1) this.stock[j].el.classList.add('stacked');
+      this.place(this.stock[j], this.stockPos.x + d*step, this.stockPos.y + d*step*0.55, 400 + j);
+    }
+    // foundations: only the top card of a completed pile keeps a shadow
+    this.found.forEach((pile, f) => {
+      for(let i=0; i<pile.length; i++){
+        if(i < pile.length-1) pile[i].el.classList.add('stacked');
+        this.place(pile[i], this.pad, this.tabY + f * (H + this.gapV), 300 + i);
+      }
+    });
+    // free cell (occupies the stock slot once the stock is exhausted)
+    if(this.free) this.place(this.free, this.stockPos.x, this.stockPos.y, 600);
+
+    this.stockCountEl.textContent = s;
+    this.stockCountEl.style.display = s ? 'block' : 'none';
+    this.freeSlotEl.classList.toggle('on', this.freeActive && !this.free);
+  }
+
+  /* ---------- rules ---------- */
+  zoneOf(card){
+    for(let c=0; c<7; c++) if(this.tab[c].includes(card)) return { type:'tableau', c };
+    if(this.waste.includes(card)) return { type:'waste' };
+    if(this.free === card) return { type:'free' };
+    for(let f=0; f<4; f++) if(this.found[f].includes(card)) return { type:'foundation', f };
+    if(this.stock.includes(card)) return { type:'stock' };
+    return null;
+  }
+
+  // What a pointer may pick up: the top waste card, the free cell, or a
+  // proper descending alternating-color run from a tableau column
+  pickupable(zone, card){
+    if(zone.type === 'waste')   return this.waste[this.waste.length-1] === card;
+    if(zone.type === 'free')    return true;
+    if(zone.type === 'tableau'){
+      const col = this.tab[zone.c];
+      const i = col.indexOf(card);
+      for(let j=i+1; j<col.length; j++){
+        const a = col[j-1], b = col[j];
+        if(b.rank !== a.rank-1 || isRed(b.suit) === isRed(a.suit)) return false;
+      }
+      return true;
+    }
+    return false; // stock & foundation are not directly draggable
+  }
+
+  canDropTableau(run, c){
+    const col = this.tab[c];
+    if(!col.length) return true;               // any card or run (rule 2)
+    const t = col[col.length-1], h = run[0];
+    return h.rank === t.rank-1 && isRed(h.suit) !== isRed(t.suit);
+  }
+
+  // Foundations take single cards only: an ace on an empty pile, else the
+  // exact next rank of the pile's suit
+  canDropFoundation(run){
+    if(run.length !== 1) return -1;
+    const c = run[0], f = c.suit, pile = this.found[f];
+    if(!pile.length) return c.rank === 1 ? f : -1;
+    return pile[pile.length-1].rank + 1 === c.rank ? f : -1;
+  }
+
+  canDropFreeCell(run){
+    return run.length === 1 && this.freeActive && !this.free;
+  }
+
+  /* ---------- moves ---------- */
+  pushHistory(){
+    // Undo stores card ids, not objects, so snapshots stay compact and the
+    // live cards (with their DOM elements) are re-resolved on restore
+    const ids = a => a.map(c => c.id);
+    this.history.push({
+      stock: ids(this.stock), waste: ids(this.waste),
+      free: this.free && this.free.id, freeActive: this.freeActive,
+      found: this.found.map(ids), tab: this.tab.map(ids),
+      moves: this.moves,
+    });
+    if(this.history.length > 300) this.history.shift();
+    this.updateStats();
+  }
+
+  /* Applies a move. opts.force bypasses the phase/won guards (?mid/?win
+     pseudo-players); opts.quiet skips history + move counter so the HUD
+     keeps its numbers. Callers validate legality first. */
+  doMove(from, cards, to, opts = {}){
+    if(this.won && !opts.force) return false;
+    if(this.phase !== 'play' && !opts.force) return false;
+    if(!opts.quiet) this.pushHistory();
+
+    if(from.type === 'tableau'){
+      const col = this.tab[from.c];
+      col.splice(col.indexOf(cards[0]), cards.length);
+    } else if(from.type === 'waste'){
+      this.waste.splice(this.waste.length - cards.length, cards.length);
+    } else if(from.type === 'free'){
+      this.free = null;
+    }
+    if(to.type === 'tableau')      this.tab[to.c].push(...cards);
+    else if(to.type === 'foundation') this.found[to.f].push(...cards);
+    else if(to.type === 'free')    this.free = cards[0];
+
+    if(!opts.quiet) this.moves++;
+    if(to.type === 'foundation') SFX.up(cards[cards.length-1].rank);
+    else SFX.move();
+
+    this.render();
+    this.updateStats();
+    this.checkWin();
+    return true;
+  }
+
+  /* Draws up to 3 (the remainder when fewer remain). The last draw unlocks
+     the free cell (rule 4). */
+  dealStock(){
+    if(!this.stock.length || this.phase !== 'play') return false;
+    this.pushHistory();
+    const n = Math.min(3, this.stock.length);
+    const drawn = [];
+    for(let i=0; i<n; i++){
+      const c = this.stock.pop();
+      this.waste.push(c);
+      drawn.push(c);
+    }
+    if(!this.stock.length) this.freeActive = true;
+    this.moves++;
+    this.render();
+    drawn.forEach(c => c.el.classList.add('flip'));
+    this.timers.push(setTimeout(() => drawn.forEach(c => c.el.classList.remove('down')), 140));
+    this.timers.push(setTimeout(() => drawn.forEach(c => c.el.classList.remove('flip')), 340));
+    SFX.deal();
+    this.updateStats();
+    return true;
+  }
+
+  // Double-click / drag-up path: send a single card to its foundation, or
+  // shake + buzz if it doesn't fit (rule 5: foundations are final, so a
+  // missed chance is a missed chance)
+  tryFoundation(zone, card){
+    const f = this.canDropFoundation([card]);
+    if(f >= 0){
+      this.doMove(zone, [card], { type:'foundation', f });
+    } else {
+      card.el.classList.add('shake');
+      this.timers.push(setTimeout(() => card.el.classList.remove('shake'), 220));
+      SFX.bad();
+    }
+  }
+
+  /* Every legal manual move. Drives the random playout tests and the ?mid
+     pseudo-player; a hint feature would use it too. */
+  legalMoves(){
+    const ms = [];
+    const runValid = run => {
+      for(let j=1; j<run.length; j++)
+        if(run[j].rank !== run[j-1].rank-1 || isRed(run[j].suit) === isRed(run[j-1].suit)) return false;
+      return true;
+    };
+    for(let c=0; c<7; c++){
+      const col = this.tab[c];
+      for(let i=0; i<col.length; i++){
+        const run = col.slice(i);
+        if(!runValid(run)) continue;
+        for(let c2=0; c2<7; c2++)
+          if(c2 !== c && this.canDropTableau(run, c2))
+            ms.push({ from:{ type:'tableau', c }, run, to:{ type:'tableau', c:c2 } });
+        if(run.length === 1){
+          const f = this.canDropFoundation(run);
+          if(f >= 0) ms.push({ from:{ type:'tableau', c }, run, to:{ type:'foundation', f } });
+          if(this.canDropFreeCell(run)) ms.push({ from:{ type:'tableau', c }, run, to:{ type:'free' } });
+        }
+      }
+    }
+    if(this.waste.length){
+      const card = this.waste[this.waste.length-1];
+      for(let c2=0; c2<7; c2++)
+        if(this.canDropTableau([card], c2))
+          ms.push({ from:{ type:'waste' }, run:[card], to:{ type:'tableau', c:c2 } });
+      const f = this.canDropFoundation([card]);
+      if(f >= 0) ms.push({ from:{ type:'waste' }, run:[card], to:{ type:'foundation', f } });
+      if(this.canDropFreeCell([card])) ms.push({ from:{ type:'waste' }, run:[card], to:{ type:'free' } });
+    }
+    if(this.free){
+      const card = this.free;
+      for(let c2=0; c2<7; c2++)
+        if(this.canDropTableau([card], c2))
+          ms.push({ from:{ type:'free' }, run:[card], to:{ type:'tableau', c:c2 } });
+      const f = this.canDropFoundation([card]);
+      if(f >= 0) ms.push({ from:{ type:'free' }, run:[card], to:{ type:'foundation', f } });
+    }
+    if(this.stock.length) ms.push({ deal: true });
+    return ms;
+  }
+
+  /* Restores the last snapshot. Clears pending animation/overlay timers
+     for the undone move, resyncs card faces (stock cards go face-down
+     again) and in-flight animation classes, and restarts the clock if the
+     undone move was a win. */
+  undo(){
+    const s = this.history.pop();
+    if(!s) return;
+    this.clearTimers();
+    const byId = id => this.byCardId.get(id);
+    this.stock = s.stock.map(byId);
+    this.waste = s.waste.map(byId);
+    this.free = s.free != null ? byId(s.free) : null;
+    this.freeActive = s.freeActive;
+    this.found = s.found.map(ids => ids.map(byId));
+    this.tab = s.tab.map(ids => ids.map(byId));
+    this.moves = s.moves;
+    this.won = false;
+    this.phase = 'play';
+    this.overlayEl.classList.remove('show');
+    const stockIds = new Set(this.stock.map(c => c.id));
+    for(const card of this.byCardId.values()){
+      card.el.classList.toggle('down', stockIds.has(card.id));
+      card.el.classList.remove('flip', 'shake', 'drag');
+    }
+    if(!this.clockId) this.clockId = setInterval(() => this.updateClock(), 500);
+    SFX.move();
+    this.render();
+    this.updateStats();
+  }
+
+  /* ---------- win ---------- */
+  /* All four foundations complete = win. Stops the clock (undo restarts
+     it) and persists the win count + best time. */
+  checkWin(){
+    if(this.won) return true;
+    if(!this.found.every(f => f.length === 13)) return false;
+    this.won = true;
+    this.phase = 'won';
+    clearInterval(this.clockId); this.clockId = null;
+    const secs = this.t0 ? Math.floor((Date.now() - this.t0)/1000) : 0;
+    this.winsCount = +localStorage.getItem('ss_wins') || 0;
+    localStorage.setItem('ss_wins', ++this.winsCount);
+    let bestLine = '';
+    const prevBest = +localStorage.getItem('ss_best') || 0;
+    if(!prevBest || secs < prevBest){
+      localStorage.setItem('ss_best', secs);
+      bestLine = '★ NEW BEST TIME';
+    } else {
+      bestLine = 'BEST ' + fmtTime(prevBest);
+    }
+    this.updateStats();
+    SFX.win();
+    this.confetti();
+    const showOverlay = () => {
+      if(this.syncMode) this.overlayEl.classList.add('notrans');
+      $('#winTime').textContent = fmtTime(secs);
+      $('#winMoves').textContent = this.moves;
+      $('#winWins').textContent = this.winsCount;
+      $('#bestLine').textContent = bestLine;
+      this.overlayEl.classList.add('show');
+    };
+    if(this.syncMode) showOverlay(); // sync mode: no timers before first-frame captures
+    else {
+      const t = setTimeout(showOverlay, 700);
+      this.timers.push(t);
+    }
+    return true;
+  }
+
+  confetti(){
+    this.confettiEl.innerHTML = '';
+    const colors = ['#5ad1e0','#e9c46a','#d64560','#dfe6f3','#7d8aa5'];
+    for(let i=0; i<32; i++){
+      const d = document.createElement('div');
+      d.className = 'conf';
+      d.style.left = (Math.random()*100) + 'vw';
+      d.style.background = colors[i % colors.length];
+      if(Math.random() < .4){ d.style.width = d.style.height = '8px'; d.style.borderRadius = '50%'; }
+      d.style.setProperty('--tx', (Math.random()*160 - 80) + 'px');
+      d.style.setProperty('--rot', (Math.random()*1080 - 540) + 'deg');
+      d.style.setProperty('--d', (1.4 + Math.random()) + 's');
+      d.style.setProperty('--delay', (Math.random()*0.35) + 's');
+      this.confettiEl.appendChild(d);
+    }
+    const t = setTimeout(() => this.confettiEl.innerHTML = '', 3200);
+    this.timers.push(t);
+  }
+
+  /* ---------- timer / stats ---------- */
+  startTimer(){
+    this.t0 = Date.now();
+    clearInterval(this.clockId);
+    this.clockId = setInterval(() => this.updateClock(), 500);
+    this.updateClock();
+  }
+  updateClock(){
+    if(!this.t0) return;
+    this.clockEl.textContent = fmtTime(Math.floor((Date.now() - this.t0)/1000));
+  }
+  updateStats(){
+    this.movesEl.textContent = this.moves;
+    this.winsEl.textContent = this.winsCount;
+    $('#undoBtn').disabled = this.history.length === 0;
+  }
+
+  /* ---------- input ---------- */
+  toBoard(e){
+    const r = this.boardEl.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  inRect(p, r, m = 8){
+    return p.x >= r.x - m && p.x <= r.x + r.w + m && p.y >= r.y - m && p.y <= r.y + r.h + m;
+  }
+
+  /* Pointer Events (mouse + touch): press a pickable card and move >7px to
+     start a drag; release resolves the drop. Press/release without moving
+     is a click: the stock deals, a double-click tries to send the card up. */
+  bindInput(){
+    this.boardEl.addEventListener('pointerdown', e => this.onDown(e));
+    window.addEventListener('pointermove', e => this.onMove(e));
+    window.addEventListener('pointerup',   e => this.onUp(e));
+    this.boardEl.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  onDown(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    SFX.ensure();
+    if(this.phase !== 'play') return;
+    const el = e.target.closest ? e.target.closest('.card') : null;
+    const pd = { x0:e.clientX, y0:e.clientY, moved:false, card:null, zone:null, pickable:false, drag:null };
+    if(el){
+      const card = this.byCardId.get(+el.dataset.id);
+      pd.card = card;
+      pd.zone = this.zoneOf(card);
+      pd.pickable = this.pickupable(pd.zone, card);
+    }
+    this.pd = pd;
+  }
+
+  onMove(e){
+    const pd = this.pd;
+    if(!pd) return;
+    if(pd.drag){ this.updateDrag(e); return; }
+    if(pd.pickable && Math.hypot(e.clientX - pd.x0, e.clientY - pd.y0) > 7){
+      this.startDrag(pd, e);
+    }
+  }
+
+  startDrag(pd, e){
+    const card = pd.card, zone = pd.zone;
+    // A tableau pickup drags the whole run below the grabbed card
+    const run = zone.type === 'tableau'
+      ? this.tab[zone.c].slice(this.tab[zone.c].indexOf(card))
+      : [card];
+    const b = this.toBoard(e);
+    const d = {
+      run, zone,
+      grabDX: b.x - card.x,
+      grabDY: b.y - card.y,
+      offsets: run.map(c => ({ ox: c.x - card.x, oy: c.y - card.y })),
+    };
+    pd.drag = d;
+    this.drag = d;
+    run.forEach((c, k) => { c.el.classList.add('drag'); c.el.style.zIndex = 1000 + k; });
+    this.boardEl.classList.add('dragging');
+    this.updateDrag(e);
+  }
+
+  updateDrag(e){
+    const b = this.toBoard(e);
+    const d = this.drag;
+    d.run.forEach((c, k) => {
+      this.place(c, b.x - d.grabDX + d.offsets[k].ox, b.y - d.grabDY + d.offsets[k].oy, 1000 + k);
+    });
+    this.updateHighlights();
+  }
+
+  /* Only the foundation / free-cell slots glow while dragging; lighting up
+     the tableau columns was cryptic */
+  updateHighlights(){
+    this.slotsEl.querySelectorAll('.slot.target').forEach(s => s.classList.remove('target'));
+    const run = this.drag.run;
+    const mark = el => el && el.classList.add('target');
+    if(run.length === 1){
+      const f = this.canDropFoundation(run);
+      if(f >= 0) mark(this.foundSlotEls[f]);
+      if(this.canDropFreeCell(run)) mark(this.freeSlotEl);
+    }
+  }
+
+  /* Where a drop at board point b can land: single cards may go to the
+     free cell or a foundation anywhere on the board; anything below the
+     waste row snaps to the nearest tableau column; else null (bounce
+     back). */
+  dropTarget(b, run){
+    if(run.length === 1){
+      if(this.inRect(b, this.rects.free)) return { type:'free' };
+      for(let f=0; f<4; f++)
+        if(this.inRect(b, this.rects.found[f])) return { type:'foundation', f };
+    }
+    if(b.y >= this.tabY - this.cardH*0.35)
+      return { type:'tableau', c: clamp(Math.round((b.x - this.tabX0 - this.cardW/2) / (this.cardW + this.gapX)), 0, 6) };
+    return null;
+  }
+
+  onUp(e){
+    const pd = this.pd;
+    if(!pd) return;
+    this.pd = null;
+    if(pd.drag){
+      const d = pd.drag;
+      this.drag = null;
+      this.boardEl.classList.remove('dragging');
+      const b = this.toBoard(e);
+      const t = this.dropTarget(b, d.run);
+      let ok = false;
+      if(t){
+        if(t.type === 'free')        ok = this.canDropFreeCell(d.run);
+        else if(t.type === 'foundation') ok = this.canDropFoundation(d.run) === t.f;
+        else if(t.type === 'tableau')    ok = this.canDropTableau(d.run, t.c);
+      }
+      d.run.forEach(c => c.el.classList.remove('drag'));
+      if(ok) this.doMove(d.zone, d.run, t);
+      else {
+        SFX.bad();
+        void this.boardEl.offsetWidth; // flush the drag position so the bounce-back transitions
+        this.render();
+      }
+      return;
+    }
+    // click (no drag)
+    if(pd.card){
+      if(pd.zone.type === 'stock'){
+        this.dealStock();
+        return;
+      }
+      const now = Date.now();
+      const dbl = this.lastTap && this.lastTap.card === pd.card && now - this.lastTap.t < 340;
+      this.lastTap = { card: pd.card, t: now };
+      if(dbl) this.tryFoundation(pd.zone, pd.card);
+    } else if(e.target.closest && e.target.closest('.slot') === this.freeSlotEl && this.stock.length){
+      // the slot behind the stock also deals (defensive — the stock pile
+      // normally covers it completely)
+      this.dealStock();
+    }
+  }
+
+  /* ---------- buttons ---------- */
+  bindButtons(){
+    $('#newBtn').addEventListener('click', () => { SFX.ensure(); this.newGame(); });
+    $('#undoBtn').addEventListener('click', () => this.undo());
+    const soundBtn = $('#soundBtn');
+    const paintSound = () => soundBtn.classList.toggle('muted', SFX.muted);
+    soundBtn.addEventListener('click', () => {
+      SFX.muted = !SFX.muted;
+      localStorage.setItem('ss_muted', SFX.muted ? '1' : '0');
+      paintSound();
+      if(!SFX.muted) SFX.move();
+    });
+    paintSound();
+    $('#rulesBtn').addEventListener('click', () => this.helpEl.classList.add('show'));
+    $('#helpClose').addEventListener('click', () => this.helpEl.classList.remove('show'));
+    this.helpEl.addEventListener('click', e => { if(e.target === this.helpEl) this.helpEl.classList.remove('show'); });
+    $('#againBtn').addEventListener('click', () => { this.overlayEl.classList.remove('show'); this.newGame(); });
+    this.overlayEl.addEventListener('click', e => { if(e.target === this.overlayEl && this.won) this.overlayEl.classList.remove('show'); });
+    window.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){
+        this.helpEl.classList.remove('show');
+        if(this.won) this.overlayEl.classList.remove('show');
+      }
+    });
+    // debounced re-layout on resize
+    let rT;
+    window.addEventListener('resize', () => {
+      clearTimeout(rT);
+      rT = setTimeout(() => { this.layout(); this.render(); }, 80);
+    });
+  }
+}
+
+/* ============================== boot ============================== */
+const game = new Game($('#board'));
+// Test hook: the jsdom suites in tests/ drive the game through window.__SOL
+window.__SOL = { game, SFX, version: 1 };
+})();
+</script>
+</body>
+</html>
