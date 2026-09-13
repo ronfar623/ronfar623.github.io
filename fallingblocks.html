@@ -77,11 +77,16 @@
 
   /* ---------- stats ---------- */
   .stats { flex: 1; display: flex; flex-direction: column; }
-  .stat { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 2px; }
-  .stat .label { color: var(--dim); font-size: 11.5px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .stats h2 { margin-bottom: 40px; }
+  .stat { padding: 6px 2px; }
+  .stat .label {
+    display: block;
+    color: var(--dim); font-size: 11.5px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+  }
   .stat .value {
+    display: block; text-align: right;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px;
-    color: var(--text); display: inline-block;
+    color: var(--text);
     text-shadow: 0 0 14px rgba(0, 229, 255, .35);
   }
   #score { font-size: 21px; color: #fff; }
@@ -100,7 +105,7 @@
   /* ---------- keys ---------- */
   .keys { flex: 1; }
   .keys ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
-  .keys .padhead { margin-top: 10px; }
+  .keys .padhead { margin-top: 25px; }
   .keys li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--dim); letter-spacing: .5px; }
   kbd {
     font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px;
@@ -115,7 +120,7 @@
   }
   #padStatus.on { color: var(--cyan); text-shadow: 0 0 10px rgba(0, 229, 255, .55); }
   #muteBtn {
-    margin-top: 14px; width: 100%;
+    margin-top: 60px; width: 100%;
     background: rgba(0, 229, 255, .08);
     color: var(--cyan);
     border: 1px solid rgba(0, 229, 255, .35);
@@ -237,13 +242,28 @@
         <h2>HOLD</h2>
         <canvas id="hold" class="preview"></canvas>
       </section>
-      <section class="card stats">
-        <h2>STATS</h2>
-        <div class="stat"><span class="label">Score</span><span class="value" id="score">0</span></div>
-        <div class="stat"><span class="label">Best</span><span class="value" id="best">0</span></div>
-        <div class="stat"><span class="label">Level</span><span class="value" id="level">1</span></div>
-        <div class="stat"><span class="label">Lines</span><span class="value" id="linesEl">0</span></div>
-        <span class="combo hidden" id="combo">COMBO ×<span id="comboVal">0</span></span>
+      <section class="card keys">
+        <h2>KEYS</h2>
+        <ul>
+          <li><span>Move</span><span><kbd>←</kbd> <kbd>→</kbd></span></li>
+          <li><span>Soft drop</span><span><kbd>↓</kbd></span></li>
+          <li><span>Hard drop</span><span><kbd>↑</kbd></span></li>
+          <li><span>Rotate CW</span><span><kbd>X</kbd></span></li>
+          <li><span>Rotate CCW</span><span><kbd>Z</kbd></span></li>
+          <li><span>Hold</span><span><kbd>C</kbd></span></li>
+          <li><span>Pause</span><span><kbd>P</kbd></span></li>
+        </ul>
+        <h2 class="padhead">GAMEPAD <span id="padStatus">— OFF</span></h2>
+        <ul>
+          <li><span>Move</span><span><kbd>◄</kbd> <kbd>►</kbd></span></li>
+          <li><span>Soft drop</span><span><kbd>▼</kbd></span></li>
+          <li><span>Hard drop</span><span><kbd>A</kbd></span></li>
+          <li><span>Rotate CW</span><span><kbd>B</kbd></span></li>
+          <li><span>Rotate CCW</span><span><kbd>X</kbd></span></li>
+          <li><span>Hold</span><span><kbd>Y</kbd></span></li>
+          <li><span>Pause</span><span><kbd>START</kbd></span></li>
+        </ul>
+        <button id="muteBtn">🔊 SOUND ON</button>
       </section>
     </aside>
 
@@ -261,28 +281,13 @@
         <h2>NEXT</h2>
         <canvas id="next" class="preview"></canvas>
       </section>
-      <section class="card keys">
-        <h2>KEYS</h2>
-        <ul>
-          <li><span>Move</span><span><kbd>←</kbd> <kbd>→</kbd></span></li>
-          <li><span>Soft drop</span><span><kbd>↓</kbd></span></li>
-          <li><span>Rotate CW</span><span><kbd>X</kbd></span></li>
-          <li><span>Rotate CCW</span><span><kbd>Z</kbd></span></li>
-          <li><span>Hard drop</span><span><kbd>↑</kbd> <kbd>SPACE</kbd></span></li>
-          <li><span>Hold</span><span><kbd>C</kbd></span></li>
-          <li><span>Pause</span><span><kbd>P</kbd></span></li>
-        </ul>
-        <h2 class="padhead">GAMEPAD <span id="padStatus">— OFF</span></h2>
-        <ul>
-          <li><span>Move</span><span><kbd>←</kbd> <kbd>→</kbd></span></li>
-          <li><span>Soft drop</span><span><kbd>↓</kbd></span></li>
-          <li><span>Rotate CW</span><span><kbd>A</kbd></span></li>
-          <li><span>Rotate CCW</span><span><kbd>X</kbd></span></li>
-          <li><span>Hard drop</span><span><kbd>B</kbd></span></li>
-          <li><span>Hold</span><span><kbd>Y</kbd></span></li>
-          <li><span>Pause</span><span><kbd>START</kbd></span></li>
-        </ul>
-        <button id="muteBtn">🔊 SOUND ON</button>
+      <section class="card stats">
+        <h2>STATS</h2>
+        <div class="stat"><span class="label">Score:</span><span class="value" id="score">0</span></div>
+        <div class="stat"><span class="label">Best:</span><span class="value" id="best">0</span></div>
+        <div class="stat"><span class="label">Level:</span><span class="value" id="level">1</span></div>
+        <div class="stat"><span class="label">Lines:</span><span class="value" id="linesEl">0</span></div>
+        <span class="combo hidden" id="combo">COMBO ×<span id="comboVal">0</span></span>
       </section>
     </aside>
   </main>
@@ -956,10 +961,11 @@ function pollGamepad() {
     padKeys.down = !!b[13];
 
     const pressed = (i) => b[i] && !pad.prev[i]; // edge-triggered: once per press
-    if (pressed(0)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else rotate(1); }  // A
-    if (pressed(2)) { initAudio(); rotate(-1); }                // X
-    if (pressed(1)) { initAudio(); hardDrop(); }                // B
-    if (pressed(3)) { initAudio(); doHold(); }                  // Y
+    if (pressed(0)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else hardDrop(); } // A
+    if (pressed(1)) { initAudio(); rotate(1); }                                                              // B
+    if (pressed(2)) { initAudio(); rotate(-1); }                                                             // X
+    if (pressed(3)) { initAudio(); doHold(); }                                                               // Y
+
     if (pressed(9)) { initAudio(); if (state === 'menu' || state === 'over') startGame(); else togglePause(); } // START
     pad.prev = b;
   } else {
