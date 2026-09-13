@@ -388,7 +388,7 @@
   .mock-board {
     width: 100%;
     max-width: 320px;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
@@ -435,6 +435,9 @@
   }
 
   .mock-col .mock-card + .mock-card { margin-top: -56px; }
+
+  /* stock pile: near-flat stack, just a hint of pile thickness */
+  .mock-col.stock .mock-card + .mock-card { margin-top: -76px; }
 
   .mock-card.red { color: #d64560; }
 
@@ -485,14 +488,6 @@
     letter-spacing: 0.04em;
     color: rgba(90, 209, 224, 0.6);
     text-shadow: 0 0 8px rgba(90, 209, 224, 0.35);
-  }
-
-  .mock-slot {
-    flex: 1;
-    min-height: 16px;
-    margin-top: 6px;
-    border: 1.5px dashed rgba(255, 255, 255, 0.25);
-    border-radius: 4px;
   }
 
   /* ---------- Footer ---------- */
@@ -720,33 +715,28 @@
       <div class="project-preview solitaire" aria-hidden="true">
         <div class="mock-board">
           <div class="mock-board-label">Single pass</div>
-          <div class="mock-col">
+          <div class="mock-col stock">
             <div class="mock-card back"><span class="back-s">S</span></div>
             <div class="mock-card back"><span class="back-s">S</span></div>
             <div class="mock-card back"><span class="back-s">S</span></div>
-            <div class="mock-slot"></div>
           </div>
           <div class="mock-col">
             <div class="mock-card"><span class="corner tl"><span class="rank">K</span><span class="suit">&#9824;</span></span><span class="pip">&#9824;</span><span class="corner br"><span class="rank">K</span><span class="suit">&#9824;</span></span></div>
             <div class="mock-card red"><span class="corner tl"><span class="rank">Q</span><span class="suit">&#9829;</span></span><span class="pip">&#9829;</span><span class="corner br"><span class="rank">Q</span><span class="suit">&#9829;</span></span></div>
             <div class="mock-card"><span class="corner tl"><span class="rank">J</span><span class="suit">&#9827;</span></span><span class="pip">&#9827;</span><span class="corner br"><span class="rank">J</span><span class="suit">&#9827;</span></span></div>
-            <div class="mock-slot"></div>
           </div>
           <div class="mock-col">
             <div class="mock-card red"><span class="corner tl"><span class="rank">10</span><span class="suit">&#9830;</span></span><span class="pip">&#9830;</span><span class="corner br"><span class="rank">10</span><span class="suit">&#9830;</span></span></div>
             <div class="mock-card"><span class="corner tl"><span class="rank">9</span><span class="suit">&#9824;</span></span><span class="pip">&#9824;</span><span class="corner br"><span class="rank">9</span><span class="suit">&#9824;</span></span></div>
             <div class="mock-card red"><span class="corner tl"><span class="rank">8</span><span class="suit">&#9829;</span></span><span class="pip">&#9829;</span><span class="corner br"><span class="rank">8</span><span class="suit">&#9829;</span></span></div>
             <div class="mock-card"><span class="corner tl"><span class="rank">7</span><span class="suit">&#9827;</span></span><span class="pip">&#9827;</span><span class="corner br"><span class="rank">7</span><span class="suit">&#9827;</span></span></div>
-            <div class="mock-slot"></div>
           </div>
           <div class="mock-col">
             <div class="mock-card red"><span class="corner tl"><span class="rank">6</span><span class="suit">&#9830;</span></span><span class="pip">&#9830;</span><span class="corner br"><span class="rank">6</span><span class="suit">&#9830;</span></span></div>
             <div class="mock-card"><span class="corner tl"><span class="rank">5</span><span class="suit">&#9824;</span></span><span class="pip">&#9824;</span><span class="corner br"><span class="rank">5</span><span class="suit">&#9824;</span></span></div>
-            <div class="mock-slot"></div>
           </div>
           <div class="mock-col">
             <div class="mock-card red"><span class="corner tl"><span class="rank">A</span><span class="suit">&#9829;</span></span><span class="pip">&#9829;</span><span class="corner br"><span class="rank">A</span><span class="suit">&#9829;</span></span></div>
-            <div class="mock-slot"></div>
           </div>
         </div>
       </div>
