@@ -29,24 +29,22 @@
       padding: 24px;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       min-height: 100vh;
-      overflow-x: hidden;
+      overflow-x: auto;
     }
 
-    h1 {
-      margin-bottom: 24px;
-      font-size: 1.75rem;
-      font-weight: 600;
-      text-align: center;
-    }
-
-    /* Main Two-Column Layout: controls on the left, visualizer on the right */
+    /* Main Two-Column Layout: controls on the left, visualizer on the right.
+       Left-justified (not centered) so that when the virtual screen grows
+       past the column (e.g. Native Resolution on), it overflows to the right
+       into scrollable space instead of straddling a centered block and
+       clipping off the left side of the page. */
     .main-content {
       display: flex;
       gap: 24px;
       width: 100%;
       max-width: 1500px;
+      margin: 0;
       align-items: flex-start;
       flex-wrap: wrap;
     }
@@ -119,6 +117,16 @@
       border-color: var(--accent-color);
     }
 
+    input[type="color"] {
+      width: 100%;
+      height: 38px;
+      padding: 2px;
+      background-color: #18181b;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
     .ratio-inputs {
       display: flex;
       align-items: center;
@@ -183,23 +191,88 @@
       background-color: #22c55e;
     }
 
+    /* Standalone Share Button row (top of the options column) */
+    .share-row {
+      display: flex;
+    }
+
+    .share-row .share-btn {
+      margin-top: 0;
+      width: 100%;
+    }
+
+    /* Horizontal row for grid style controls */
+    .grid-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .grid-row .input-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Screen Grid Overlay. Line width and spacing are both --grid-size
+       (default 1px for pixel-accurate 1:1 rendering). */
+    .screen-grid-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+      --grid-line: rgba(0, 0, 0, 0.5);
+      --grid-size: 1px;
+    }
+
+    .screen-grid-overlay.mode-h {
+      background-image: repeating-linear-gradient(to bottom,
+        var(--grid-line) 0px,
+        var(--grid-line) var(--grid-size),
+        transparent var(--grid-size),
+        transparent calc(var(--grid-size) * 2));
+    }
+
+    .screen-grid-overlay.mode-v {
+      background-image: repeating-linear-gradient(to right,
+        var(--grid-line) 0px,
+        var(--grid-line) var(--grid-size),
+        transparent var(--grid-size),
+        transparent calc(var(--grid-size) * 2));
+    }
+
+    .screen-grid-overlay.mode-both {
+      background-image:
+        repeating-linear-gradient(to bottom,
+          var(--grid-line) 0px,
+          var(--grid-line) var(--grid-size),
+          transparent var(--grid-size),
+          transparent calc(var(--grid-size) * 2)),
+        repeating-linear-gradient(to right,
+          var(--grid-line) 0px,
+          var(--grid-line) var(--grid-size),
+          transparent var(--grid-size),
+          transparent calc(var(--grid-size) * 2));
+    }
+
     /* Visualizer Section */
     .visualizer-wrapper {
       flex: 1 1 600px;
       min-width: 320px;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
     }
 
     .visualizer-viewport {
       background-color: var(--visualizer-bg);
-      width: 100%;
+      /* Left-justified: the screen grows to the right instead of expanding
+         in both directions over the options column */
+      width: max-content;
+      min-width: 100%;
       padding: 80px;
       border-radius: 12px;
       border: 1px solid var(--card-border);
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
       overflow: visible;
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -243,9 +316,14 @@
       pointer-events: none;
     }
 
-    /* Informational Text Badge inside Video Image */
+    /* Informational Text Badge, centered on the screen. It is a direct
+       child of .lcd-screen (after the grid overlay in DOM order) so its
+       z-index puts it above the Screen Grid Overlay. */
     .info-badge {
-      position: relative;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background-color: rgba(0, 0, 0, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.3);
       padding: 10px 16px;
@@ -256,6 +334,7 @@
       line-height: 1.4;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       white-space: nowrap;
+      pointer-events: none;
       z-index: 10;
     }
 
@@ -270,15 +349,14 @@
       color: #e4e4e7;
     }
 
-    .info-badge .line-3 {
+    .info-badge .line-3,
+    .info-badge .line-4 {
       font-size: 0.85rem;
       color: #a1a1aa;
     }
   </style>
 </head>
 <body>
-
-  <h1>Display & Video Scaling Visualizer</h1>
 
   <!-- Main Content: Options (left) + Visualizer (right) -->
   <div class="main-content">
@@ -298,7 +376,7 @@
 
         <div class="input-group">
           <label for="vid-h">Vertical Pixels</label>
-          <input type="number" id="vid-h" value="240" min="1">
+          <input type="number" id="vid-h" value="200" min="1">
         </div>
 
         <div class="input-group full-width">
@@ -327,12 +405,12 @@
       <div class="input-grid" id="integer-controls">
         <div class="input-group">
           <label for="mult-x">X Multiplier</label>
-          <input type="number" id="mult-x" value="4" min="1" step="1">
+          <input type="number" id="mult-x" value="3" min="1" step="1">
         </div>
 
         <div class="input-group">
           <label for="mult-y">Y Multiplier</label>
-          <input type="number" id="mult-y" value="4" min="1" step="1">
+          <input type="number" id="mult-y" value="3" min="1" step="1">
         </div>
       </div>
     </div>
@@ -344,12 +422,12 @@
       <div class="input-grid">
         <div class="input-group">
           <label for="scr-w">Horizontal Pixels</label>
-          <input type="number" id="scr-w" value="1920" min="1">
+          <input type="number" id="scr-w" value="1280" min="1">
         </div>
 
         <div class="input-group">
           <label for="scr-h">Vertical Pixels</label>
-          <input type="number" id="scr-h" value="1080" min="1">
+          <input type="number" id="scr-h" value="720" min="1">
         </div>
 
         <div class="input-group full-width">
@@ -363,8 +441,67 @@
         <button type="button" class="toggle-btn active" id="btn-unit-in">Inches (in)</button>
         <button type="button" class="toggle-btn" id="btn-unit-cm">Centimeters (cm)</button>
       </div>
+    </div>
 
-      <!-- Share Button at bottom of Screen Frame -->
+    <!-- Moiré Card -->
+    <div class="frame">
+      <h2>Moiré</h2>
+
+      <label>Native Resolution</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-native-off">Off</button>
+        <button type="button" class="toggle-btn" id="btn-native-on">On</button>
+      </div>
+
+      <label>Video Display</label>
+      <div class="toggle-group" id="pattern-mode-group">
+        <button type="button" class="toggle-btn active" id="btn-pat-squares">Squares</button>
+        <button type="button" class="toggle-btn" id="btn-pat-hlines">H Lines</button>
+        <button type="button" class="toggle-btn" id="btn-pat-vlines">V Lines</button>
+        <button type="button" class="toggle-btn" id="btn-pat-checker">Checker</button>
+      </div>
+
+      <label>Screen Grid Overlay</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-grid-off">Off</button>
+        <button type="button" class="toggle-btn" id="btn-grid-h">H Lines</button>
+        <button type="button" class="toggle-btn" id="btn-grid-v">V Lines</button>
+        <button type="button" class="toggle-btn" id="btn-grid-both">Both</button>
+      </div>
+
+      <div class="grid-row">
+        <div class="input-group">
+          <label>Color</label>
+          <input type="color" id="grid-color" value="#101010">
+        </div>
+
+        <div class="input-group">
+          <label>Opacity %</label>
+          <input type="number" id="grid-opacity" value="80" min="0" max="100" step="1">
+        </div>
+
+        <div class="input-group">
+          <label>Grid Size</label>
+          <input type="number" id="grid-size" value="1" min="1" step="1">
+        </div>
+
+        <div class="input-group">
+          <label>Motion</label>
+          <input type="number" id="motion-steps" value="1" min="1" step="1">
+        </div>
+      </div>
+
+      <label>Motion</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-motion-off">Off</button>
+        <button type="button" class="toggle-btn" id="btn-motion-h">H</button>
+        <button type="button" class="toggle-btn" id="btn-motion-v">V</button>
+        <button type="button" class="toggle-btn" id="btn-motion-both">Both</button>
+      </div>
+    </div>
+
+    <!-- Share Button (standalone, below the cards) -->
+    <div class="share-row">
       <button type="button" class="share-btn" id="btn-share">🔗 Share Configuration</button>
     </div>
 
@@ -381,13 +518,17 @@
           <!-- Dynamic Monochrome SVG Test Pattern -->
           <svg class="test-pattern-svg" id="test-pattern-svg" preserveAspectRatio="none"></svg>
 
-          <!-- Text Information Badge -->
-          <div class="info-badge">
-            <div class="line-1" id="info-size">0.0" diag. (0.0" x 0.0")</div>
-            <div class="line-2" id="info-ar">Aspect Ratio: 4:3</div>
-            <div class="line-3" id="info-ppi">0.0 PPI</div>
-          </div>
+        </div>
 
+        <!-- Pixel-Accurate Screen Grid Overlay (toggled from Moiré card) -->
+        <div class="screen-grid-overlay" id="screen-grid-overlay" style="display:none;"></div>
+
+        <!-- Text Information Badge (sibling of the grid overlay so it stays on top) -->
+        <div class="info-badge">
+          <div class="line-1" id="info-size">0.0" diag. (0.0" x 0.0")</div>
+          <div class="line-2" id="info-ar">Aspect Ratio: 4:3</div>
+          <div class="line-3" id="info-res">0x0 (0x by 0x)</div>
+          <div class="line-4" id="info-ppi">0.0 PPI</div>
         </div>
       </div>
     </div>
@@ -399,6 +540,14 @@
     // Configuration & State
     let isIntegerScaling = true;
     let intAxisLock = 'xy'; // 'xy' | 'x' | 'y'
+    let patternMode = 'squares'; // 'squares' | 'hlines' | 'vlines' | 'checker'
+    let gridOverlayMode = 'off'; // 'off' | 'h' | 'v' | 'both'
+    let nativeResolution = false;
+    let motionMode = 'off'; // 'off' | 'h' | 'v' | 'both'
+    let gridColor = '#101010';
+    let gridOpacity = 0.8;
+    let gridSize = 1; // px; line width = spacing = gridSize
+    let motionSteps = 1; // raw CSS pixels per motion step
     let unitMode = 'in';
 
     // Element References
@@ -430,14 +579,51 @@
     const lcdScreen = document.getElementById('lcd-screen');
     const videoImage = document.getElementById('video-image');
     const testPatternSvg = document.getElementById('test-pattern-svg');
+    const screenGridOverlay = document.getElementById('screen-grid-overlay');
+
+    const btnPatSquares = document.getElementById('btn-pat-squares');
+    const btnPatHlines = document.getElementById('btn-pat-hlines');
+    const btnPatVlines = document.getElementById('btn-pat-vlines');
+    const btnPatChecker = document.getElementById('btn-pat-checker');
+    const btnGridOff = document.getElementById('btn-grid-off');
+    const btnGridH = document.getElementById('btn-grid-h');
+    const btnGridV = document.getElementById('btn-grid-v');
+    const btnGridBoth = document.getElementById('btn-grid-both');
+    const btnNativeOn = document.getElementById('btn-native-on');
+    const btnNativeOff = document.getElementById('btn-native-off');
+    const btnMotionOff = document.getElementById('btn-motion-off');
+    const btnMotionH = document.getElementById('btn-motion-h');
+    const btnMotionV = document.getElementById('btn-motion-v');
+    const btnMotionBoth = document.getElementById('btn-motion-both');
+
+    const gridColorInput = document.getElementById('grid-color');
+    const gridOpacityInput = document.getElementById('grid-opacity');
+    const gridSizeInput = document.getElementById('grid-size');
+    const motionStepsInput = document.getElementById('motion-steps');
     const infoSize = document.getElementById('info-size');
     const infoAr = document.getElementById('info-ar');
+    const infoRes = document.getElementById('info-res');
     const infoPpi = document.getElementById('info-ppi');
 
     // Helper to sanitize whole-number integer fields
     function getIntegerVal(inputEl, fallback) {
       let val = Math.round(parseFloat(inputEl.value));
       return (isNaN(val) || val < 1) ? fallback : val;
+    }
+
+    // Convert #rrggbb to [r, g, b]
+    function hexToRgb(hex) {
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return m
+        ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
+        : [0, 0, 0];
+    }
+
+    // Apply grid color/opacity/size to the overlay via CSS variables
+    function applyGridStyle() {
+      const [r, g, b] = hexToRgb(gridColor);
+      screenGridOverlay.style.setProperty('--grid-line', `rgba(${r}, ${g}, ${b}, ${gridOpacity})`);
+      screenGridOverlay.style.setProperty('--grid-size', `${gridSize}px`);
     }
 
     // Toggle Mode Controllers
@@ -454,6 +640,88 @@
         integerControlsGroup.classList.add('disabled-control');
         axisLockGroup.classList.add('disabled-control');
       }
+    }
+
+    // Video Test Pattern Mode Controller
+    function setPatternMode(mode) {
+      if (!['squares', 'hlines', 'vlines', 'checker'].includes(mode)) mode = 'squares';
+      patternMode = mode;
+      btnPatSquares.classList.toggle('active', mode === 'squares');
+      btnPatHlines.classList.toggle('active', mode === 'hlines');
+      btnPatVlines.classList.toggle('active', mode === 'vlines');
+      btnPatChecker.classList.toggle('active', mode === 'checker');
+    }
+
+    // Screen Grid Overlay Controller: 'off' | 'h' | 'v' | 'both'
+    function setGridOverlay(mode) {
+      if (!['off', 'h', 'v', 'both'].includes(mode)) mode = 'off';
+      gridOverlayMode = mode;
+      btnGridOff.classList.toggle('active', mode === 'off');
+      btnGridH.classList.toggle('active', mode === 'h');
+      btnGridV.classList.toggle('active', mode === 'v');
+      btnGridBoth.classList.toggle('active', mode === 'both');
+      screenGridOverlay.className = mode === 'off'
+        ? 'screen-grid-overlay'
+        : `screen-grid-overlay mode-${mode}`;
+      screenGridOverlay.style.display = mode === 'off' ? 'none' : 'block';
+    }
+
+    // Native Resolution Controller: when on, the virtual screen renders at
+    // its full pixel count (1 CSS px = 1 virtual display pixel, no scaling)
+    function setNativeResolution(on) {
+      nativeResolution = !!on;
+      btnNativeOn.classList.toggle('active', nativeResolution);
+      btnNativeOff.classList.toggle('active', !nativeResolution);
+    }
+
+    // Motion Controller: drifts the video image to expose motion moire
+    // against the static screen grid. Offsets are quantized to whole
+    // CSS-pixel steps (motionSteps).
+    const MOTION_RANGE = 32;       // max offset per axis, CSS px
+    const MOTION_PERIOD_MS = 8000; // one full cycle (very slow)
+    let motionRafId = null;
+
+    function setMotion(mode) {
+      if (!['off', 'h', 'v', 'both'].includes(mode)) mode = 'off';
+      motionMode = mode;
+      btnMotionOff.classList.toggle('active', mode === 'off');
+      btnMotionH.classList.toggle('active', mode === 'h');
+      btnMotionV.classList.toggle('active', mode === 'v');
+      btnMotionBoth.classList.toggle('active', mode === 'both');
+
+      if (motionRafId !== null) {
+        cancelAnimationFrame(motionRafId);
+        motionRafId = null;
+      }
+
+      if (mode === 'off') {
+        videoImage.style.transform = 'translate(-50%, -50%)';
+      } else {
+        motionRafId = requestAnimationFrame(motionLoop);
+      }
+    }
+
+    function motionLoop(t) {
+      const phase = (t % MOTION_PERIOD_MS) / MOTION_PERIOD_MS * Math.PI * 2;
+      let dx = 0;
+      let dy = 0;
+
+      // Step size = raw CSS pixels (motionSteps), independent of scale
+      if (motionMode === 'h') {
+        dx = Math.round(Math.sin(phase) * (MOTION_RANGE / motionSteps)) * motionSteps;
+      } else if (motionMode === 'v') {
+        dy = Math.round(Math.sin(phase) * (MOTION_RANGE / motionSteps)) * motionSteps;
+      } else if (motionMode === 'both') {
+        // Circular path, quantized per-axis to whole steps
+        dx = Math.round(Math.cos(phase) * (MOTION_RANGE / motionSteps)) * motionSteps;
+        dy = Math.round(Math.sin(phase) * (MOTION_RANGE / motionSteps)) * motionSteps;
+      }
+
+      // Preserve the -50%/-50% centering transform while offsetting
+      videoImage.style.transform =
+        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+      motionRafId = requestAnimationFrame(motionLoop);
     }
 
     // Integer Axis Lock Controller: 'xy' = both, 'x' = X only, 'y' = Y only
@@ -494,9 +762,12 @@
       const multY = getIntegerVal(multYInput, 4);
 
       // 2. LCD Screen Rendering & Physical Size Calculations
-      const RENDER_SCREEN_WIDTH = 1024;
+      // Default: fit to a 1024px-wide simulation. Native: render 1:1 at the
+      // virtual screen's full pixel count (no scaling whatsoever).
+      const RENDER_SCREEN_WIDTH = nativeResolution ? scrPxW : 1024;
       const screenAspectRatio = scrPxW / scrPxH;
-      const renderScreenHeight = RENDER_SCREEN_WIDTH / screenAspectRatio;
+      // In native mode, use exact pixel counts to avoid float drift
+      const renderScreenHeight = nativeResolution ? scrPxH : RENDER_SCREEN_WIDTH / screenAspectRatio;
 
       // Apply screen dimensions in DOM
       lcdScreen.style.width = `${RENDER_SCREEN_WIDTH}px`;
@@ -562,12 +833,51 @@
         vidPhysHeight = (renderVidH / renderScreenHeight) * physicalHeight;
       }
 
+      // In native mode, snap to whole CSS pixels and drop borders
+      // (border-box layout would otherwise shrink the layout/pattern
+      // areas off the 1:1 pixel grid)
+      if (nativeResolution) {
+        renderVidW = Math.round(renderVidW);
+        renderVidH = Math.round(renderVidH);
+        videoImage.style.borderWidth = '0px';
+        lcdScreen.style.borderWidth = '0px';
+      } else {
+        videoImage.style.borderWidth = '2px';
+        lcdScreen.style.borderWidth = '1px';
+      }
+
       // Apply Video dimensions in DOM
       videoImage.style.width = `${renderVidW}px`;
       videoImage.style.height = `${renderVidH}px`;
 
+      // Lock the overlay grid's phase to the video image's top-left corner,
+      // shifted by half a period (gridSize) so the overlay's dark lines fall
+      // in the gaps between the video pattern's bright lines instead of on
+      // top of them (aligned periods give fully-visible or fully-obscured
+      // lines, never partial)
+      const gridPeriod = 2 * gridSize;
+      const videoLeft = (RENDER_SCREEN_WIDTH - renderVidW) / 2;
+      const videoTop = (renderScreenHeight - renderVidH) / 2;
+      const modPos = (a, m) => ((a % m) + m) % m;
+      const originX = (gridPeriod - modPos(videoLeft + gridSize, gridPeriod)) % gridPeriod;
+      const originY = (gridPeriod - modPos(videoTop + gridSize, gridPeriod)) % gridPeriod;
+      // Shift the pattern's phase (not the overlay box, which would spill
+      // past the screen border since .lcd-screen is overflow: visible).
+      // Oversize the background image by one period so its repeat tiles
+      // start beyond the visible area (no phase-mismatched seams along the
+      // right/bottom edge when the screen size is not a multiple of the
+      // grid period).
+      screenGridOverlay.style.backgroundPosition = `${-originX}px ${-originY}px`;
+      screenGridOverlay.style.backgroundSize =
+        `calc(100% + ${gridPeriod}px) calc(100% + ${gridPeriod}px)`;
+
+      // Toggle pixel-accurate screen grid overlay
+      screenGridOverlay.style.display = gridOverlayMode !== 'off' ? 'block' : 'none';
+
       // 4. Render Black & White Test Pattern matched to Desired Aspect Ratio Geometry
       const desiredAR = arNum / arDen;
+
+      if (patternMode === 'squares') {
       const svgH = 100;
       const svgW = 100 * desiredAR;
 
@@ -601,15 +911,83 @@
         <rect width="${svgW}" height="${svgH}" fill="url(#bw-grid)" />
 
         <!-- Non-Overlapping Quincunx Outer Circles -->
-        <circle cx="${tlX}" cy="${tlY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
-        <circle cx="${trX}" cy="${trY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
-        <circle cx="${blX}" cy="${blY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
-        <circle cx="${brX}" cy="${brY}" r="${rOuter}" fill="rgba(255, 255, 255, 0.12)" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${tlX}" cy="${tlY}" r="${rOuter}" fill="none" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${trX}" cy="${trY}" r="${rOuter}" fill="none" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${blX}" cy="${blY}" r="${rOuter}" fill="none" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="${brX}" cy="${brY}" r="${rOuter}" fill="none" stroke="#ffffff" stroke-width="1.5" />
 
         <!-- Center Circle -->
-        <circle cx="${centerX}" cy="${centerY}" r="${rCenter}" fill="rgba(255, 255, 255, 0.2)" stroke="#ffffff" stroke-width="2" />
-        <circle cx="${centerX}" cy="${centerY}" r="1.5" fill="#ffffff" />
+        <circle cx="${centerX}" cy="${centerY}" r="${rCenter}" fill="none" stroke="#ffffff" stroke-width="2" />
       `;
+      } else {
+        // Moire test pattern in source-pixel coordinates. The SVG is stretched
+        // to fill the rendered video image (preserveAspectRatio="none"), so
+        // 1 user unit = 1 rendered video pixel. Lines are 1 source pixel
+        // thick, separated by 1 source pixel (2-pixel period).
+        const svgW = vidPxW;
+        const svgH = vidPxH;
+
+        testPatternSvg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+        const moireLine = 'rgba(255, 255, 255, 0.7)';
+
+        // Quincunx reference circles, matching the Squares pattern. The
+        // Squares pattern draws true circles in a viewBox whose aspect ratio
+        // equals the Desired Aspect Ratio, which is then stretched to the
+        // rendered video image (preserveAspectRatio="none"). This viewBox
+        // instead uses the source-pixel aspect ratio (vidPxW/vidPxH), so
+        // the radii are pre-stretched horizontally by
+        // (vidPxW/vidPxH)/desiredAR to produce identical on-screen
+        // ellipses (e.g. a 320x200 image with 4:3 desired AR renders the
+        // circles stretched 4.8:3 in every pattern). Stroke widths are
+        // scaled by svgH/100 to keep the same relative weight as the
+        // Squares pattern (where 100 units = full image height).
+        const circRx = (r) => r * svgW / (100 * desiredAR);
+        const circRy = (r) => r * svgH / 100;
+        const strokeOuter = 1.5 * svgH / 100;
+        const strokeCenter = 2 * svgH / 100;
+        const circleOverlay = `
+          <ellipse cx="${svgW * 0.2}" cy="${svgH * 0.2}" rx="${circRx(13)}" ry="${circRy(13)}" fill="none" stroke="#ffffff" stroke-width="${strokeOuter}" />
+          <ellipse cx="${svgW * 0.8}" cy="${svgH * 0.2}" rx="${circRx(13)}" ry="${circRy(13)}" fill="none" stroke="#ffffff" stroke-width="${strokeOuter}" />
+          <ellipse cx="${svgW * 0.2}" cy="${svgH * 0.8}" rx="${circRx(13)}" ry="${circRy(13)}" fill="none" stroke="#ffffff" stroke-width="${strokeOuter}" />
+          <ellipse cx="${svgW * 0.8}" cy="${svgH * 0.8}" rx="${circRx(13)}" ry="${circRy(13)}" fill="none" stroke="#ffffff" stroke-width="${strokeOuter}" />
+          <ellipse cx="${svgW / 2}" cy="${svgH / 2}" rx="${circRx(22)}" ry="${circRy(22)}" fill="none" stroke="#ffffff" stroke-width="${strokeCenter}" />
+        `;
+
+        if (patternMode === 'hlines') {
+          testPatternSvg.innerHTML = `
+            <defs>
+              <pattern id="hlines" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+                <rect width="2" height="1" fill="${moireLine}" />
+              </pattern>
+            </defs>
+            <rect width="${svgW}" height="${svgH}" fill="url(#hlines)" />
+            ${circleOverlay}
+          `;
+        } else if (patternMode === 'vlines') {
+          testPatternSvg.innerHTML = `
+            <defs>
+              <pattern id="vlines" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+                <rect width="1" height="2" fill="${moireLine}" />
+              </pattern>
+            </defs>
+            <rect width="${svgW}" height="${svgH}" fill="url(#vlines)" />
+            ${circleOverlay}
+          `;
+        } else {
+          // checkerboard: 1x1 source-pixel cells, alternating
+          testPatternSvg.innerHTML = `
+            <defs>
+              <pattern id="checker" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+                <rect width="1" height="1" fill="${moireLine}" />
+                <rect x="1" y="1" width="1" height="1" fill="${moireLine}" />
+              </pattern>
+            </defs>
+            <rect width="${svgW}" height="${svgH}" fill="url(#checker)" />
+            ${circleOverlay}
+          `;
+        }
+      }
 
       // 5. Display Informational Text
       const vidDiag = Math.sqrt(vidPhysWidth * vidPhysWidth + vidPhysHeight * vidPhysHeight);
@@ -624,7 +1002,33 @@
       const formattedVarWidth = Number(varWidth.toFixed(2));
       infoAr.textContent = `Aspect Ratio: ${formattedVarWidth}:${arDen}`;
 
-      // Line 3: Source Pixels Per Inch / Pixels Per CM (PPI/PPCM)
+      // Line 3: Upscaled (rendered) resolution + original source resolution.
+      // The upscaled dimensions are the video's footprint in the virtual
+      // screen's pixel space: integer multipliers on locked axes, derived
+      // from the aspect ratio on free axes.
+      let upW = 0;
+      let upH = 0;
+      if (isIntegerScaling) {
+        if (intAxisLock !== 'y') upW = Math.round(vidPxW * multX);
+        if (intAxisLock !== 'x') upH = Math.round(vidPxH * multY);
+        if (intAxisLock === 'y') upW = Math.round(upH * desiredAR);
+        else if (intAxisLock === 'x') upH = Math.round(upW / desiredAR);
+      } else {
+        if (desiredAR > screenAspectRatio) {
+          upW = scrPxW;
+          upH = Math.round(scrPxW / desiredAR);
+        } else {
+          upH = scrPxH;
+          upW = Math.round(scrPxH * desiredAR);
+        }
+      }
+      // Per-axis upscale multipliers (exact integer multipliers on locked
+      // axes, derived ratios on free/non-integer axes), trimmed of trailing
+      // zeros, e.g. "3x" or "3.6x"
+      const fmtMult = (v) => `${Number(v.toFixed(2))}x`;
+      infoRes.textContent = `${upW}x${upH} (${fmtMult(upW / vidPxW)} by ${fmtMult(upH / vidPxH)})`;
+
+      // Line 4: Source Pixels Per Inch / Pixels Per CM (PPI/PPCM)
       const ppiX = vidPxW / vidPhysWidth;
       const ppiY = vidPxH / vidPhysHeight;
       const ppiUnit = unitMode === 'in' ? 'PPI' : 'PPCM';
@@ -744,6 +1148,115 @@
       updateVisualizer();
     });
 
+    // Moiré Toggles
+    btnPatSquares.addEventListener('click', () => {
+      setPatternMode('squares');
+      updateVisualizer();
+    });
+
+    btnPatHlines.addEventListener('click', () => {
+      setPatternMode('hlines');
+      updateVisualizer();
+    });
+
+    btnPatVlines.addEventListener('click', () => {
+      setPatternMode('vlines');
+      updateVisualizer();
+    });
+
+    btnPatChecker.addEventListener('click', () => {
+      setPatternMode('checker');
+      updateVisualizer();
+    });
+
+    btnGridOff.addEventListener('click', () => {
+      setGridOverlay('off');
+      updateVisualizer();
+    });
+
+    btnGridH.addEventListener('click', () => {
+      setGridOverlay('h');
+      updateVisualizer();
+    });
+
+    btnGridV.addEventListener('click', () => {
+      setGridOverlay('v');
+      updateVisualizer();
+    });
+
+    btnGridBoth.addEventListener('click', () => {
+      setGridOverlay('both');
+      updateVisualizer();
+    });
+
+    btnNativeOn.addEventListener('click', () => {
+      setNativeResolution(true);
+      updateVisualizer();
+    });
+
+    btnNativeOff.addEventListener('click', () => {
+      setNativeResolution(false);
+      updateVisualizer();
+    });
+
+    btnMotionOff.addEventListener('click', () => {
+      setMotion('off');
+    });
+
+    btnMotionH.addEventListener('click', () => {
+      setMotion('h');
+    });
+
+    btnMotionV.addEventListener('click', () => {
+      setMotion('v');
+    });
+
+    btnMotionBoth.addEventListener('click', () => {
+      setMotion('both');
+    });
+
+    // Grid Style Controls
+    gridColorInput.addEventListener('input', () => {
+      gridColor = gridColorInput.value;
+      applyGridStyle();
+    });
+
+    gridOpacityInput.addEventListener('input', () => {
+      const pct = Math.min(100, Math.max(0, Math.round(parseFloat(gridOpacityInput.value) || 0)));
+      gridOpacity = pct / 100;
+      applyGridStyle();
+    });
+
+    gridOpacityInput.addEventListener('change', () => {
+      gridOpacityInput.value = Math.min(100, Math.max(0, Math.round(parseFloat(gridOpacityInput.value) || 0)));
+      gridOpacity = parseFloat(gridOpacityInput.value) / 100;
+      applyGridStyle();
+    });
+
+    gridSizeInput.addEventListener('input', () => {
+      gridSize = getIntegerVal(gridSizeInput, 1);
+      applyGridStyle();
+      // The grid period changed, so re-run the phase-lock math to keep the
+      // overlay aligned with the video pattern
+      updateVisualizer();
+    });
+
+    gridSizeInput.addEventListener('change', () => {
+      gridSizeInput.value = Math.max(1, Math.round(parseFloat(gridSizeInput.value) || 1));
+      gridSize = getIntegerVal(gridSizeInput, 1);
+      applyGridStyle();
+      updateVisualizer();
+    });
+
+    motionStepsInput.addEventListener('input', () => {
+      motionSteps = getIntegerVal(motionStepsInput, 1);
+    });
+
+    motionStepsInput.addEventListener('change', () => {
+      motionStepsInput.value = Math.max(1, Math.round(parseFloat(motionStepsInput.value) || 1));
+      motionSteps = getIntegerVal(motionStepsInput, 1);
+    });
+
     // Share Button Event Listener
     btnShare.addEventListener('click', () => {
       const shareUrl = generateShareURL();
@@ -768,6 +1281,7 @@
 
     // Initialize Page
     loadStateFromURL();
+    applyGridStyle();
     updateVisualizer();
   </script>
 </body>
