@@ -322,6 +322,13 @@
         <button type="button" class="toggle-btn" id="btn-scale-nonint">Non-Integer</button>
       </div>
 
+      <label>Integer Axis Lock</label>
+      <div class="toggle-group" id="axis-lock-group">
+        <button type="button" class="toggle-btn active" id="btn-lock-xy">X &amp; Y</button>
+        <button type="button" class="toggle-btn" id="btn-lock-x">X Only</button>
+        <button type="button" class="toggle-btn" id="btn-lock-y">Y Only</button>
+      </div>
+
       <div class="input-grid" id="integer-controls">
         <div class="input-group">
           <label for="mult-x">X Multiplier</label>
@@ -397,6 +404,7 @@
   <script>
     // Configuration & State
     let isIntegerScaling = true;
+    let intAxisLock = 'xy'; // 'xy' | 'x' | 'y'
     let unitMode = 'in';
 
     // Element References
@@ -411,6 +419,11 @@
 
     const btnScaleInt = document.getElementById('btn-scale-int');
     const btnScaleNonInt = document.getElementById('btn-scale-nonint');
+
+    const btnLockXY = document.getElementById('btn-lock-xy');
+    const btnLockX = document.getElementById('btn-lock-x');
+    const btnLockY = document.getElementById('btn-lock-y');
+    const axisLockGroup = document.getElementById('axis-lock-group');
 
     const scrWInput = document.getElementById('scr-w');
     const scrHInput = document.getElementById('scr-h');
@@ -440,11 +453,24 @@
         btnScaleInt.classList.add('active');
         btnScaleNonInt.classList.remove('active');
         integerControlsGroup.classList.remove('disabled-control');
+        axisLockGroup.classList.remove('disabled-control');
       } else {
         btnScaleNonInt.classList.add('active');
         btnScaleInt.classList.remove('active');
         integerControlsGroup.classList.add('disabled-control');
+        axisLockGroup.classList.add('disabled-control');
       }
+    }
+
+    // Integer Axis Lock Controller: 'xy' = both, 'x' = X only, 'y' = Y only
+    function setAxisLock(mode) {
+      if (!['xy', 'x', 'y'].includes(mode)) mode = 'xy';
+      intAxisLock = mode;
+      btnLockXY.classList.toggle('active', mode === 'xy');
+      btnLockX.classList.toggle('active', mode === 'x');
+      btnLockY.classList.toggle('active', mode === 'y');
+      multXInput.parentElement.classList.toggle('disabled-control', mode === 'y');
+      multYInput.parentElement.classList.toggle('disabled-control', mode === 'x');
     }
 
     function setUnitMode(unit) {
@@ -498,15 +524,32 @@
       let vidPhysHeight = 0;
 
       if (isIntegerScaling) {
-        // Integer scaling: Multiplies base video pixels on each axis independently
-        const scaledVidPxW = vidPxW * multX;
-        const scaledVidPxH = vidPxH * multY;
+        // Integer scaling: Locked axis/axes are multiplied by their integer
+        // multipliers; any free axis is derived from the desired aspect ratio
+        const desiredAR = arNum / arDen;
 
-        renderVidW = (scaledVidPxW / scrPxW) * RENDER_SCREEN_WIDTH;
-        renderVidH = (scaledVidPxH / scrPxH) * renderScreenHeight;
+        if (intAxisLock !== 'y') {
+          // X axis locked to integer multiplier
+          const scaledVidPxW = vidPxW * multX;
+          renderVidW = (scaledVidPxW / scrPxW) * RENDER_SCREEN_WIDTH;
+          vidPhysWidth = scaledVidPxW * unitPerPxW;
+        }
 
-        vidPhysWidth = scaledVidPxW * unitPerPxW;
-        vidPhysHeight = scaledVidPxH * unitPerPxH;
+        if (intAxisLock !== 'x') {
+          // Y axis locked to integer multiplier
+          const scaledVidPxH = vidPxH * multY;
+          renderVidH = (scaledVidPxH / scrPxH) * renderScreenHeight;
+          vidPhysHeight = scaledVidPxH * unitPerPxH;
+        }
+
+        // Free axis (if any) stretched to match the desired aspect ratio
+        if (intAxisLock === 'y') {
+          renderVidW = renderVidH * desiredAR;
+          vidPhysWidth = (renderVidW / RENDER_SCREEN_WIDTH) * physicalWidth;
+        } else if (intAxisLock === 'x') {
+          renderVidH = renderVidW / desiredAR;
+          vidPhysHeight = (renderVidH / renderScreenHeight) * physicalHeight;
+        }
       } else {
         // Non-integer scaling: Fit screen boundaries while maintaining desired aspect ratio
         const desiredAR = arNum / arDen;
@@ -621,6 +664,10 @@
         setScalingMode(params.get('sm') === 'int');
       }
 
+      if (params.has('ial')) {
+        setAxisLock(params.get('ial'));
+      }
+
       if (params.has('u')) {
         setUnitMode(params.get('u') === 'cm' ? 'cm' : 'in');
       }
@@ -634,6 +681,7 @@
       params.set('arn', arNumInput.value);
       params.set('ard', arDenInput.value);
       params.set('sm', isIntegerScaling ? 'int' : 'nonint');
+      params.set('ial', intAxisLock);
       params.set('mx', multXInput.value);
       params.set('my', multYInput.value);
       params.set('sw', scrWInput.value);
@@ -674,6 +722,21 @@
 
     btnScaleNonInt.addEventListener('click', () => {
       setScalingMode(false);
+      updateVisualizer();
+    });
+
+    btnLockXY.addEventListener('click', () => {
+      setAxisLock('xy');
+      updateVisualizer();
+    });
+
+    btnLockX.addEventListener('click', () => {
+      setAxisLock('x');
+      updateVisualizer();
+    });
+
+    btnLockY.addEventListener('click', () => {
+      setAxisLock('y');
       updateVisualizer();
     });
 
