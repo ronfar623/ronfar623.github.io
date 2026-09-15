@@ -8,7 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ============ theme ============ */
+/* ------------------------------------------------------------------ *
+ * Sawayama Solitaire — Klondike, single pass (rules by Zachtronics).
+ *
+ * One self-contained IIFE, one Game class, zero dependencies. All 52
+ * cards are persistent <div>s positioned with transform:translate;
+ * render() recomputes every card's position/z-index from plain state
+ * (tab / found / stock / waste / free), so undo is just a snapshot
+ * restore. See the <script> block for the full program overview.
+ * ------------------------------------------------------------------ */
+
+/* ---------- theme tokens ---------- */
 :root{
   --bg:#06080f;
   --panel:#0b111e;
@@ -30,33 +40,36 @@ body{
   overscroll-behavior:none;
   -webkit-tap-highlight-color:transparent;
 }
-/* CRT scanlines — decorative, never intercept input */
+/* Decorative CRT scanlines. Fixed overlay above everything; pointer-events
+   are off so they never intercept input. */
 body::before{
   content:""; position:fixed; inset:0; z-index:90; pointer-events:none;
   background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px);
   mix-blend-mode:overlay;
 }
-/* ambient glow behind the app */
+/* Ambient glow behind the app (z 0, under #app's z 1). */
 body::after{
   content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
   background:
     radial-gradient(90% 50% at 50% -10%, rgba(90,209,224,.07), transparent 60%),
     radial-gradient(120% 90% at 50% 115%, rgba(16,26,54,.55), transparent 60%);
 }
+/* The app column is narrowed by layout() to the width the board actually
+   needs, so header and board stay aligned on wide screens. */
 #app{
   position:relative; z-index:1; height:100%;
   display:flex; flex-direction:column; gap:10px;
   max-width:1180px; margin:0 auto;
   padding:14px 18px 10px;
 }
-/* ============ header ============ */
+
+/* ---------- header / HUD ---------- */
 header{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
-/* The title's letter-spacing leaves one trailing space in its layout box; the
-   negative margin cancels it so the badge below centers on the visible
+/* The letter-spacing leaves one trailing space in the title's layout box;
+   the negative margin cancels it so the badge below centers on the visible
    glyphs. Don't remove without re-checking the centering. */
 .brand .title{ font-weight:700; font-size:17px; letter-spacing:.34em; margin-right:-.34em; }
 .brand .title .thin{ font-weight:400; color:var(--dim); }
-/* pill stays fitted to its text and is centered under the title */
 .badge{
   margin:6px auto 0; display:block; width:max-content;
   font-family:var(--font-m); font-size:9px; letter-spacing:.22em;
@@ -80,15 +93,19 @@ button{
 button:hover{ color:var(--accent); border-color:rgba(90,209,224,.55); box-shadow:0 0 14px rgba(90,209,224,.16); }
 button:active{ transform:translateY(1px); }
 button:disabled{ opacity:.35; cursor:default; box-shadow:none; color:var(--dim); }
+/* AUTO toggle, highlighted while engaged */
+button.on{ color:var(--accent); background:rgba(90,209,224,.07); border-color:rgba(90,209,224,.55); box-shadow:0 0 14px rgba(90,209,224,.16); }
 button.primary{
   color:#07222b; font-weight:600;
   background:linear-gradient(180deg,#6fdbe8,#43b9c8);
   border-color:transparent;
 }
 button.primary:hover{ color:#07222b; box-shadow:0 0 18px rgba(90,209,224,.4); }
+/* Sound button indicator: cyan = on, grey (.muted) = off */
 button .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; vertical-align:1px; box-shadow:0 0 6px var(--accent); }
 button.muted .dot{ background:#4a5468; box-shadow:none; }
-/* ============ board ============ */
+
+/* ---------- board ---------- */
 #board{
   position:relative; flex:1; min-height:0;
   border-radius:18px; border:1px solid var(--line);
@@ -98,6 +115,7 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
   box-shadow:inset 0 0 80px rgba(0,0,0,.45), 0 24px 70px rgba(0,0,0,.5);
   touch-action:none; user-select:none; -webkit-user-select:none;
   overflow:hidden;
+  /* Card metrics; layout() rewrites these every size change */
   --cw:90px; --ch:128px; --cr:8px;
 }
 #board.busy{ pointer-events:none; }
@@ -105,7 +123,10 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 /* ?now=1 synchronous deal: kill transitions so the first painted frame is
    already the final layout (first-frame screenshots / jsdom) */
 #board.notrans .card{ transition:none !important; }
-/* ============ slots ============ */
+
+/* ---------- slots ----------
+   Static placeholder outlines for every zone. The free cell reuses the
+   stock's slot: the same div is the "FREE CELL" once the stock is empty. */
 #slots{ position:absolute; inset:0; }
 .slot{
   position:absolute; border-radius:var(--cr);
@@ -115,30 +136,36 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 }
 .slot.tab{ border-color:rgba(150,180,255,.07); }
 .slot.found{ border-style:solid; border-color:rgba(150,180,255,.13); }
-/* legal drop highlight while dragging */
+/* Legal drop highlight while dragging (foundations / free cell only) */
 .slot.target{
   border-style:solid; border-color:var(--accent);
   box-shadow:0 0 0 2px rgba(90,209,224,.20), 0 0 22px rgba(90,209,224,.30);
   background:rgba(90,209,224,.05);
 }
+/* Suit watermark in an empty foundation slot */
 .slot .glyph{ font-size:calc(var(--cw)*.5); color:rgba(150,180,255,.11); }
 .slot .tag{
   font-family:var(--font-m); font-size:8px; letter-spacing:.24em;
   color:rgba(150,180,255,.4); display:none;
 }
-/* the free cell is the stock slot itself; it lights gold once unlocked */
+/* The free cell lights gold while it is unlocked and empty */
 .slot.free.on{ border-color:rgba(233,196,106,.55); }
 .slot.free.on .tag{ display:block; color:rgba(233,196,106,.65); }
-/* Stock count, rendered inside the bottom of the stock card: it must outrank
-   the stock stack (z 400–423), and pointer-events are off so clicks fall
-   through to the (clickable) card beneath. */
+/* Stock count, rendered inside the bottom of the stock card. It must
+   outrank the stock stack (z 400–423), and pointer-events are off so
+   clicks fall through to the (clickable) card beneath. */
 #stockCount{
   position:absolute; z-index:450;
   text-align:center; pointer-events:none;
   font-family:var(--font-m); font-size:9px; letter-spacing:.2em;
   color:var(--dim); opacity:.75;
 }
-/* ============ cards ============ */
+
+/* ---------- cards ----------
+   One persistent .card div per card; .card-inner is the visible face,
+   .back is the face-down cover. Z-index ladder (set in render/place):
+     tableau 100+c*10+i   stock 400+j   stockCount 450
+     waste    500+i       foundations 300+i   free cell 600   drag 1000+k */
 #cards{ position:absolute; inset:0; }
 .card{
   position:absolute; top:0; left:0;
@@ -158,8 +185,8 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 .card.drag .card-inner{
   box-shadow:0 18px 34px rgba(0,0,0,.55), 0 5px 12px rgba(0,0,0,.35);
 }
-/* Cards buried in a stack (stock pile, completed foundations, pre-deal pile):
-   no drop shadow, or dozens of overlapping shadows pool into a dark halo */
+/* Cards buried in a stack (stock pile, completed foundations, pre-deal
+   pile): shadow off, or dozens of overlapping shadows pool into a dark halo */
 .card.stacked .card-inner{ box-shadow:none; }
 .card .corner{
   position:absolute; top:calc(var(--cw)*.045); left:calc(var(--cw)*.055);
@@ -175,6 +202,7 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
   margin-top:calc(var(--cw)*.008);
 }
 .card .corner.br{ top:auto; left:auto; bottom:calc(var(--cw)*.045); right:calc(var(--cw)*.055); transform:rotate(180deg); }
+/* Faint centered suit watermark on the face */
 .card .pip{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
@@ -182,7 +210,7 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 }
 .card.red  .rank, .card.red  .suit, .card.red  .pip{ color:#d64560; }
 .card.black .rank, .card.black .suit, .card.black .pip{ color:#252b45; }
-/* card back ("S" = Sawayama); face-down cards hide the face and show this */
+/* Card back ("S" = Sawayama); shown while .down, face hidden */
 .card .back{
   position:absolute; inset:calc(var(--cw)*.035);
   border-radius:calc(var(--cr)*.75);
@@ -201,12 +229,13 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 .card:not(.down) .back{ display:none; }
 .card.down .corner, .card.down .pip{ display:none; }
 .card.down{ cursor:default; }
-/* deal flip + invalid-move shake */
+/* Deal flip + invalid-move shake */
 @keyframes flipIn{ 0%{transform:scaleX(1)} 45%{transform:scaleX(.06)} 100%{transform:scaleX(1)} }
 .card.flip .card-inner{ animation:flipIn .3s ease-in-out; }
 @keyframes shakeX{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
 .card.shake .card-inner{ animation:shakeX .2s; }
-/* ============ overlays ============ */
+
+/* ---------- overlays (win + rules) ---------- */
 .overlay{
   position:fixed; inset:0; z-index:50;
   display:flex; align-items:center; justify-content:center;
@@ -214,8 +243,8 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
   opacity:0; pointer-events:none; transition:opacity .3s;
 }
 .overlay.show{ opacity:1; pointer-events:auto; }
-/* ?now=1: the win overlay fades in via transition, which never progresses in
-   a first-frame capture — skip the transition for sync wins */
+/* ?now=1: the win overlay fades in via transition, which never progresses
+   in a first-frame capture — skip the transition for sync wins */
 .overlay.notrans, .overlay.notrans .panel{ transition:none !important; }
 .panel{
   text-align:center; padding:38px 54px 34px;
@@ -232,7 +261,6 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
   font-size:26px; letter-spacing:.34em; font-weight:700;
   color:var(--accent); text-shadow:0 0 24px rgba(90,209,224,.45);
 }
-.panel h1.gold{ color:var(--gold); text-shadow:0 0 24px rgba(233,196,106,.4); }
 .panel .sub{ margin-top:10px; font-family:var(--font-m); font-size:10px; letter-spacing:.22em; color:var(--dim); }
 .panel .credit{ margin-top:8px; font-family:var(--font-m); font-size:9px; letter-spacing:.22em; color:var(--dim); }
 .panel .credit a{ color:var(--accent); text-decoration:none; }
@@ -250,7 +278,8 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
 .panel .rules li::before{ content:"◆"; position:absolute; left:0; top:0; font-size:8px; color:var(--accent); line-height:2.6; }
 .panel .rules b{ color:var(--accent); font-weight:600; }
 .panel .hint{ font-family:var(--font-m); font-size:9.5px; letter-spacing:.14em; color:var(--dim); margin-top:14px; line-height:1.9; }
-/* ============ confetti (win celebration, CSS-only) ============ */
+
+/* ---------- confetti (CSS-only win celebration) ---------- */
 #confetti{ position:fixed; inset:0; z-index:55; pointer-events:none; overflow:hidden; }
 .conf{
   position:absolute; top:-6vh;
@@ -275,6 +304,7 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
       <div class="stat"><label>MOVES</label><span id="moves">0</span></div>
       <div class="stat"><label>WINS</label><span id="wins">0</span></div>
       <div class="btns">
+        <button id="autoBtn" aria-pressed="false" title="toggle auto-moves">AUTO</button>
         <button id="undoBtn" disabled>UNDO</button>
         <button id="soundBtn" title="toggle sound"><span class="dot"></span>SOUND</button>
         <button id="rulesBtn">RULES</button>
@@ -316,9 +346,10 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
       <li>The deck is drawn <b>three at a time, one pass only</b>. It never reshuffles.</li>
       <li>When the deck runs out, its slot becomes a <b>free cell</b> holding one card.</li>
       <li>Foundation cards are <b>final</b> — they never come back down.</li>
-      <li>There's <b>no auto-mover</b>: the computer never places a card for you. Drag it onto a foundation — or double-click it — to send it up. Miss your chance, and that's part of the challenge.</li>
+      <li><b>AUTO is on by default</b>: any card that fits onto a foundation is sent straight up for you — from the top of a tableau column or from the top of the waste. It never moves a card onto the tableau for you, like classic Windows Solitaire.</li>
+      <li>Turn <b>AUTO off</b> to send cards up yourself: drag a card onto a foundation — or double-click it. Miss your chance, and that's part of the challenge.</li>
     </ul>
-    <div class="hint">DRAG TO MOVE · CLICK DECK TO DRAW · DOUBLE-CLICK TO SEND UP<br>WIN = BUILD ALL FOUR SUITS, ACE TO KING</div>
+    <div class="hint">DRAG TO MOVE · CLICK DECK TO DRAW · DOUBLE-CLICK TO SEND UP<br>AUTO = AUTO-PLACES FOUNDATION CARDS (ON BY DEFAULT)<br>WIN = BUILD ALL FOUR SUITS, ACE TO KING</div>
     <button id="helpClose" class="primary" style="margin-top:20px">GOT IT</button>
   </div>
 </div>
@@ -342,7 +373,7 @@ button.muted .dot{ background:#4a5468; box-shadow:none; }
  * stock empties), and 4 foundations (left column; cards there are final).
  *
  * Debug/screenshot URL params (read in newGame()):
- *   ?seed=N     deterministic deck (mulberry32)
+ *   ?seed=N     deterministic deck and pseudo-playout (mulberry32)
  *   ?instant=1  collapse the deal stagger
  *   ?now=1      fully synchronous deal (tests / first-frame screenshots)
  *   ?mid=N      after the deal, play N pseudo-random legal moves
@@ -365,9 +396,16 @@ const RANK_LABEL = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const CORNER_C = 0.1568;
 const SUIT_GLYPH = ['\u2660','\u2665','\u2666','\u2663']; // ♠♥♦♣
 const isRed = s => s===1 || s===2;
-const fmtTime = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+// mm:ss under one hour, h:mm:ss beyond it
+const fmtTime = s => {
+  const h = Math.floor(s / 3600);
+  const m = String(Math.floor(s % 3600 / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return (h ? h + ':' + m : m) + ':' + ss;
+};
 
-// small deterministic PRNG, used for ?seed decks
+// Small deterministic PRNG, used for ?seed decks and for the pseudo-player
+// so a seeded run is fully reproducible
 function mulberry32(a){
   return function(){
     a|=0; a = a + 0x6D2B79F5 | 0;
@@ -440,6 +478,8 @@ class Game{
     const seed = parseInt(new URLSearchParams(location.search).get('seed'), 10);
     this.rng = Number.isFinite(seed) ? mulberry32(seed) : Math.random;
 
+    // Card state. Column arrays run visually top→bottom, so the LAST
+    // element is the playable top of a pile. Every card owns its DOM el.
     this.tab = []; this.found = [[],[],[],[]];
     this.stock = []; this.waste = [];
     this.free = null; this.freeActive = false;
@@ -448,6 +488,7 @@ class Game{
     this.history = []; this.timers = [];
     this.t0 = 0; this.clockId = null;
     this.pd = null; this.drag = null; this.lastTap = null;
+    this.auto = true; this.autoPending = false; // AUTO on by default (not persisted; each session starts on)
     this.bw = 1000; this.bh = 700;
     this.cornerC = CORNER_C;
 
@@ -474,9 +515,10 @@ class Game{
   }
 
   /* ---------- setup ---------- */
+  /* Static slot elements, created once: the free cell (doubles as the
+     stock slot), the waste strip, the four foundations (suit glyph),
+     seven tableau columns. */
   initSlots(){
-    // Static slot elements: the free cell (doubles as the stock slot), the
-    // waste strip, the four foundations (suit glyph), seven tableau columns
     const mk = (cls, tagText, glyph) => {
       const d = document.createElement('div');
       d.className = 'slot ' + cls;
@@ -493,7 +535,7 @@ class Game{
       return d;
     };
     this.freeSlotEl  = mk('free', 'FREE CELL');
-    this.wasteSlotEl = mk('waste empty');
+    this.wasteSlotEl = mk('');
     this.foundSlotEls = [0,1,2,3].map(f => mk('found', null, SUIT_GLYPH[f]));
     this.tabSlotEls = [0,1,2,3,4,5,6].map(() => mk('tab'));
   }
@@ -511,6 +553,11 @@ class Game{
     return deck;
   }
 
+  /* Deals a fresh game and animates the fly-out, returning a promise that
+     resolves when the board is playable. Deal: 1..7 per column (all face
+     up), the 24-card remainder becomes the stock. Because the original
+     rules "essentially never" open with an exposed ace, reshuffle up to
+     50 times if any column's top card is one. */
   newGame(){
     this.clearTimers();
     this.history.length = 0;
@@ -522,9 +569,6 @@ class Game{
     this.helpEl.classList.remove('show');
     this.confettiEl.innerHTML = '';
 
-    // Deal 1..7 per column (all face up — rule 1), keep the remainder (24)
-    // as the stock. The original "essentially never" opens with an exposed
-    // ace, so reshuffle up to 50 times if any column's top card is one.
     let tries = 0;
     do{
       this.tab = [[],[],[],[],[],[],[]];
@@ -575,6 +619,7 @@ class Game{
       const done = () => {
         this.render(); // settle the stock stack
         this.phase = 'play';
+        this.scheduleAuto(); // an auto toggle made during the deal kicks in now
         this.boardEl.classList.remove('busy');
         this.startTimer();
         if(now && midTarget){
@@ -648,6 +693,8 @@ class Game{
     return finish;
   }
 
+  /* Builds a card's DOM: corner rank+suit labels (top-left and mirrored
+     bottom-right), a faint center pip, and the face-down back. */
   makeCardEl(card){
     const el = document.createElement('div');
     el.className = 'card ' + (isRed(card.suit) ? 'red' : 'black') + (this.stock.includes(card) ? ' down' : '');
@@ -663,9 +710,12 @@ class Game{
   }
 
   /* ---------- lifecycle ---------- */
+  /* Cancels every pending timer (deal stagger, flips, auto pass, win
+     overlay, confetti) and the clock interval. */
   clearTimers(){
     this.timers.forEach(clearTimeout);
     this.timers = [];
+    this.autoPending = false;
     if(this.clockId){ clearInterval(this.clockId); this.clockId = null; }
   }
 
@@ -692,21 +742,21 @@ class Game{
   }
 
   /* Sizes everything and positions the slots. Called on boot, on resize,
-     and (at most once) after the webfont has settled. */
-  layout(w, h){
+     and (at most once) after the webfont has settled.
+     The card size is the tightest of three constraints: 8 card-widths
+     across (stock + 7 tableau columns), the top row (stock + the 24-card
+     waste fan, which spans cardW + 23·wasteStep = (1 + 46·cornerC)
+     card-widths), and 5 card-heights down (top row + the 4 foundations in
+     the left column). */
+  layout(){
     const r = this.boardEl.getBoundingClientRect();
-    this.bw = w || (r.width  || 1000);
-    this.bh = h  || (r.height || 700);
+    this.bw = r.width  || 1000;
+    this.bh = r.height || 700;
     this.pad    = clamp(this.bw * 0.018, 10, 26);
     this.gapV   = clamp(this.bh * 0.016, 8, 18);
     this.sideGap = clamp(this.bw * 0.012, 10, 22);
     const gapXest = clamp(this.bw * 0.008, 6, 12);
 
-    // The card size is the tightest of three constraints: 8 card-widths
-    // across (stock + 7 tableau columns), the top row (stock + the
-    // 24-card waste fan, which spans cardW + 23·wasteStep =
-    // (1 + 46·cornerC) card-widths), and 5 card-heights down (top row +
-    // the 4 foundations in the left column).
     const W8 = (this.bw - 2*this.pad - this.sideGap - 6*gapXest) / 8;
     const W9 = (this.bw - 2*this.pad - this.sideGap) / (2 + 46*this.cornerC);
     const H5 = (this.bh - 2*this.pad - 4*this.gapV) / 5;
@@ -751,8 +801,7 @@ class Game{
     this.tabSlotEls.forEach((s,c) => put(s, this.tabX0 + c * (W + this.gapX), this.tabY, W, this.availH));
     // The count renders inside the bottom of the stock card (the first
     // foundation sits directly below the slot, so there's no room for a
-    // label under it); text-align centers it and pointer-events let clicks
-    // through to the card
+    // label under it); pointer-events let clicks through to the card
     put(this.stockCountEl, this.stockPos.x, this.stockPos.y + H - 17, W, 14);
 
     // Drop-target rects, cached for hit-testing (tableau columns include
@@ -773,7 +822,11 @@ class Game{
   }
 
   /* Single source of truth: every card is placed from state, and the
-     .stacked (shadow-off) marks are cleared then re-applied per zone. */
+     .stacked (shadow-off) marks are cleared then re-applied per zone.
+     Z ladder: foundations 300+, tableau 100+c*10+i, stock 400+j (buried
+     cards shadowless), waste 500+i, free cell 600; #stockCount (450) and
+     drag (1000+k, set in the input code) sit above their respective
+     stacks. */
   render(){
     const W = this.cardW, H = this.cardH;
     for(const card of this.byCardId.values()) card.el.classList.remove('stacked');
@@ -787,7 +840,6 @@ class Game{
     // the right and no card ever reflows, so positions are simply the
     // draw-order index
     const n = this.waste.length;
-    this.wasteSlotEl.classList.toggle('empty', n === 0);
     if(n){
       for(let i=0; i<n; i++)
         this.place(this.waste[i], this.wasteX + i*this.wasteStep, this.topY, 500 + i);
@@ -815,6 +867,9 @@ class Game{
   }
 
   /* ---------- rules ---------- */
+  /* Which zone a card currently lives in (cards are always in exactly
+     one zone; foundations and the stock are found here too, so callers
+     can distinguish them). */
   zoneOf(card){
     for(let c=0; c<7; c++) if(this.tab[c].includes(card)) return { type:'tableau', c };
     if(this.waste.includes(card)) return { type:'waste' };
@@ -841,15 +896,19 @@ class Game{
     return false; // stock & foundation are not directly draggable
   }
 
+  /* Empty columns take anything (not just kings); otherwise the run's
+     head must be exactly one rank below and opposite color to the
+     column's bottom card. */
   canDropTableau(run, c){
     const col = this.tab[c];
-    if(!col.length) return true;               // any card or run (rule 2)
+    if(!col.length) return true;
     const t = col[col.length-1], h = run[0];
     return h.rank === t.rank-1 && isRed(h.suit) !== isRed(t.suit);
   }
 
   // Foundations take single cards only: an ace on an empty pile, else the
-  // exact next rank of the pile's suit
+  // exact next rank of the pile's suit. Returns the foundation index, or
+  // -1 if it doesn't fit.
   canDropFoundation(run){
     if(run.length !== 1) return -1;
     const c = run[0], f = c.suit, pile = this.found[f];
@@ -857,6 +916,7 @@ class Game{
     return pile[pile.length-1].rank + 1 === c.rank ? f : -1;
   }
 
+  // Free cell takes one card, and only once the stock is exhausted
   canDropFreeCell(run){
     return run.length === 1 && this.freeActive && !this.free;
   }
@@ -876,9 +936,11 @@ class Game{
     this.updateStats();
   }
 
-  /* Applies a move. opts.force bypasses the phase/won guards (?mid/?win
-     pseudo-players); opts.quiet skips history + move counter so the HUD
-     keeps its numbers. Callers validate legality first. */
+  /* Applies a move. from/to are zone refs ({type, c|f}), cards the run
+     (head first, as it sits in the column). opts.force bypasses the
+     phase/won guards (?mid/?win pseudo-players); opts.quiet skips history
+     + move counter so the HUD keeps its numbers. Callers validate
+     legality first. */
   doMove(from, cards, to, opts = {}){
     if(this.won && !opts.force) return false;
     if(this.phase !== 'play' && !opts.force) return false;
@@ -903,11 +965,12 @@ class Game{
     this.render();
     this.updateStats();
     this.checkWin();
+    this.scheduleAuto();
     return true;
   }
 
   /* Draws up to 3 (the remainder when fewer remain). The last draw unlocks
-     the free cell (rule 4). */
+     the free cell. The drawn cards flip over with a short animation. */
   dealStock(){
     if(!this.stock.length || this.phase !== 'play') return false;
     this.pushHistory();
@@ -926,12 +989,13 @@ class Game{
     this.timers.push(setTimeout(() => drawn.forEach(c => c.el.classList.remove('flip')), 340));
     SFX.deal();
     this.updateStats();
+    this.scheduleAuto(); // with AUTO on, a fresh waste top may already fit
     return true;
   }
 
   // Double-click / drag-up path: send a single card to its foundation, or
-  // shake + buzz if it doesn't fit (rule 5: foundations are final, so a
-  // missed chance is a missed chance)
+  // shake + buzz if it doesn't fit (foundations are final, so a missed
+  // chance is a missed chance)
   tryFoundation(zone, card){
     const f = this.canDropFoundation([card]);
     if(f >= 0){
@@ -943,8 +1007,45 @@ class Game{
     }
   }
 
-  /* Every legal manual move. Drives the random playout tests and the ?mid
-     pseudo-player; a hint feature would use it too. */
+  /* AUTO (on by default): the computer sends placeable cards straight up
+     to the foundations, Windows-Solitaire style — the top card of each
+     tableau column and the top card of the waste. It never moves a card
+     onto the tableau for you. scheduleAuto() arms a short-delay pass so
+     each move lands visibly; every doMove re-arms the next pass, so a card
+     exposed by a placement cascades up the foundation in turn. One move
+     per pass; each placement frees exactly one source, so the cascade
+     always terminates. */
+  scheduleAuto(){
+    if(!this.auto || this.autoPending) return;
+    this.autoPending = true;
+    const t = setTimeout(() => { this.autoPending = false; this.autoPass(); }, 260);
+    this.timers.push(t);
+  }
+  autoPass(){
+    if(!this.auto || this.won || this.phase !== 'play' || this.drag) return;
+    for(let c=0; c<7; c++){
+      const col = this.tab[c];
+      if(!col.length) continue;
+      const top = col[col.length-1];
+      const f = this.canDropFoundation([top]);
+      if(f >= 0){
+        this.doMove({ type:'tableau', c }, [top], { type:'foundation', f });
+        return; // doMove armed the next pass; the cascade continues from there
+      }
+    }
+    if(this.waste.length){
+      const card = this.waste[this.waste.length-1];
+      const f = this.canDropFoundation([card]);
+      if(f >= 0){
+        this.doMove({ type:'waste' }, [card], { type:'foundation', f });
+        return; // doMove armed the next pass; the next waste card gets its turn
+      }
+    }
+  }
+
+  /* Every legal manual move as {from, run, to} (or {deal}). Drives the
+     random playout tests and the ?mid pseudo-player; a hint feature would
+     use it too. */
   legalMoves(){
     const ms = [];
     const runValid = run => {
@@ -988,10 +1089,10 @@ class Game{
     return ms;
   }
 
-  /* Restores the last snapshot. Clears pending animation/overlay timers
-     for the undone move, resyncs card faces (stock cards go face-down
-     again) and in-flight animation classes, and restarts the clock if the
-     undone move was a win. */
+  /* Restores the last snapshot. Clears pending animation/overlay timers,
+     resyncs card faces (stock cards go face-down again) and in-flight
+     animation classes, and restarts the clock (undoing a win keeps play
+     going on the original t0). */
   undo(){
     const s = this.history.pop();
     if(!s) return;
@@ -1012,10 +1113,11 @@ class Game{
       card.el.classList.toggle('down', stockIds.has(card.id));
       card.el.classList.remove('flip', 'shake', 'drag');
     }
-    if(!this.clockId) this.clockId = setInterval(() => this.updateClock(), 500);
+    this.clockId = setInterval(() => this.updateClock(), 500);
     SFX.move();
     this.render();
     this.updateStats();
+    this.scheduleAuto(); // an undone placement re-fires while AUTO is on
   }
 
   /* ---------- win ---------- */
@@ -1057,19 +1159,21 @@ class Game{
     return true;
   }
 
+  /* Pure-CSS confetti burst on win. Uses the game rng so ?seed screenshots
+     are deterministic; pieces clear themselves after the longest fall. */
   confetti(){
     this.confettiEl.innerHTML = '';
     const colors = ['#5ad1e0','#e9c46a','#d64560','#dfe6f3','#7d8aa5'];
     for(let i=0; i<32; i++){
       const d = document.createElement('div');
       d.className = 'conf';
-      d.style.left = (Math.random()*100) + 'vw';
+      d.style.left = (this.rng()*100) + 'vw';
       d.style.background = colors[i % colors.length];
-      if(Math.random() < .4){ d.style.width = d.style.height = '8px'; d.style.borderRadius = '50%'; }
-      d.style.setProperty('--tx', (Math.random()*160 - 80) + 'px');
-      d.style.setProperty('--rot', (Math.random()*1080 - 540) + 'deg');
-      d.style.setProperty('--d', (1.4 + Math.random()) + 's');
-      d.style.setProperty('--delay', (Math.random()*0.35) + 's');
+      if(this.rng() < .4){ d.style.width = d.style.height = '8px'; d.style.borderRadius = '50%'; }
+      d.style.setProperty('--tx', (this.rng()*160 - 80) + 'px');
+      d.style.setProperty('--rot', (this.rng()*1080 - 540) + 'deg');
+      d.style.setProperty('--d', (1.4 + this.rng()) + 's');
+      d.style.setProperty('--delay', (this.rng()*0.35) + 's');
       this.confettiEl.appendChild(d);
     }
     const t = setTimeout(() => this.confettiEl.innerHTML = '', 3200);
@@ -1138,6 +1242,10 @@ class Game{
 
   startDrag(pd, e){
     const card = pd.card, zone = pd.zone;
+    // Re-validate: with AUTO on, a pending pass can fire in the pre-drag
+    // window and move the pressed card, leaving pd.zone stale (a stale
+    // tableau index of -1 would slice(-1) and drag the wrong card)
+    if(!this.pickupable(zone, card)){ this.pd = null; return; }
     // A tableau pickup drags the whole run below the grabbed card
     const run = zone.type === 'tableau'
       ? this.tab[zone.c].slice(this.tab[zone.c].indexOf(card))
@@ -1239,6 +1347,17 @@ class Game{
   bindButtons(){
     $('#newBtn').addEventListener('click', () => { SFX.ensure(); this.newGame(); });
     $('#undoBtn').addEventListener('click', () => this.undo());
+    const autoBtn = $('#autoBtn');
+    const paintAuto = () => {
+      autoBtn.classList.toggle('on', this.auto);
+      autoBtn.setAttribute('aria-pressed', String(this.auto));
+    };
+    autoBtn.addEventListener('click', () => {
+      this.auto = !this.auto;
+      paintAuto();
+      if(this.auto) this.scheduleAuto();
+    });
+    paintAuto();
     const soundBtn = $('#soundBtn');
     const paintSound = () => soundBtn.classList.toggle('muted', SFX.muted);
     soundBtn.addEventListener('click', () => {
@@ -1253,6 +1372,7 @@ class Game{
     this.helpEl.addEventListener('click', e => { if(e.target === this.helpEl) this.helpEl.classList.remove('show'); });
     $('#againBtn').addEventListener('click', () => { this.overlayEl.classList.remove('show'); this.newGame(); });
     this.overlayEl.addEventListener('click', e => { if(e.target === this.overlayEl && this.won) this.overlayEl.classList.remove('show'); });
+    // Escape closes the rules panel and (after a win) the win overlay
     window.addEventListener('keydown', e => {
       if(e.key === 'Escape'){
         this.helpEl.classList.remove('show');
