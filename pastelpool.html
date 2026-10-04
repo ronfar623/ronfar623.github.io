@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920,initial-scale=1">
+<title>Pastel Pool</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#FFE9F3;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;}
+  #wrap{width:100vw;height:100vh;position:relative;overflow:hidden;}
+  /* translateZ(0)/will-change: cheap compositor-layer insurance — present in every working config */
+  canvas{position:absolute;display:block;border-radius:12px;box-shadow:0 10px 40px rgba(90,74,106,.25);transform:translateZ(0);will-change:transform;}
+  @font-face {
+    font-family: 'Baloo 2';
+    font-style: normal;
+    font-weight: 400 800;          /* variable font; range required so 700/800 map correctly */
+    src: url(data:font/woff2;base64,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) format('woff2');
+  }
+  /* --- LAN multiplayer overlays (DOM; the canvas stays the game surface) --- */
+  #mpPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:440px;background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(90,74,106,.3);padding:28px;display:none;z-index:10;font-family:'Segoe UI',sans-serif;color:#5A4A6A;text-align:center}
+  #mpPanel input{width:100%;padding:10px;border:2px solid #E8B4C8;border-radius:8px;font-size:16px;box-sizing:border-box;margin:4px 0}
+  #mpPanel button{background:#FF8FAB;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-size:16px;font-weight:700;cursor:pointer;margin:6px 4px}
+  #mpStatus{min-height:22px;font-size:14px;color:#9A8AA8;margin-top:8px}
+  #chatLog{position:fixed;left:24px;bottom:110px;width:360px;pointer-events:none;z-index:10;font:16px 'Segoe UI',sans-serif}
+  #chatLog div{background:rgba(255,255,255,.85);border-radius:8px;padding:4px 10px;margin-top:4px;color:#5A4A6A;transition:opacity 2s ease}
+  #chatBar{position:fixed;left:24px;bottom:64px;z-index:10;display:none}
+  #chatBar input{width:340px;padding:10px 14px;font-size:16px;border:2px solid #FF8FAB;border-radius:10px;background:#fff;color:#5A4A6A}
+  /* mid-game 8/9-ball toggle: live network games only (hidden otherwise) */
+  #modeBtn{position:fixed;left:0;top:0;z-index:10;display:none;background:#FF8FAB;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Segoe UI',sans-serif}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="1920" height="1080"></canvas></div>
+<div id="mpPanel"><h2 style="margin:0 0 12px">2 PLAYERS (NETWORK)</h2>
+ <div>
+  <div><button id="mpP2pHostBtn">HOST</button><button id="mpP2pJoinBtn">JOIN</button></div>
+  <div style="font-size:13px;color:#9A8AA8;margin-bottom:6px">Both players on the same network — copy/paste the codes</div>
+  <div id="p2pOfferBox" style="display:none">
+   <b style="font-size:14px">1. Send this OFFER code to the other player</b>
+   <textarea id="p2pOfferOut" rows="4" readonly style="width:100%;box-sizing:border-box;font:11px monospace;margin:4px 0;padding:6px;border:2px solid #E8B4C8;border-radius:8px"></textarea>
+   <button id="p2pOfferCopyBtn">COPY OFFER</button><button id="p2pOfferRegenBtn" style="background:#9A8AA8">REGENERATE</button>
+   <b style="font-size:14px;display:block;margin-top:10px">2. Paste their ANSWER code</b>
+   <textarea id="p2pAnswerIn" rows="4" style="width:100%;box-sizing:border-box;font:11px monospace;margin:4px 0;padding:6px;border:2px solid #E8B4C8;border-radius:8px"></textarea>
+   <button id="p2pAnswerBtn">CONNECT WITH ANSWER</button>
+  </div>
+  <div id="p2pJoinBox" style="display:none">
+   <b style="font-size:14px">1. Paste the host's OFFER code</b>
+   <textarea id="p2pOfferIn" rows="4" style="width:100%;box-sizing:border-box;font:11px monospace;margin:4px 0;padding:6px;border:2px solid #E8B4C8;border-radius:8px"></textarea>
+   <button id="mpP2pCreateAnsBtn">CREATE MY ANSWER</button>
+   <b style="font-size:14px;display:block;margin-top:10px">2. Send this ANSWER code to the host</b>
+   <textarea id="p2pAnswerOut" rows="4" readonly style="width:100%;box-sizing:border-box;font:11px monospace;margin:4px 0;padding:6px;border:2px solid #E8B4C8;border-radius:8px"></textarea>
+   <button id="p2pAnswerCopyBtn">COPY ANSWER</button>
+  </div>
+ </div>
+ <div id="mpStatus"></div><button id="mpBackBtn" style="margin-top:10px">BACK</button></div>
+<div id="chatLog"></div><div id="chatBar"><input id="chatInput" maxlength="100" placeholder="Message — Enter to send, Esc to cancel"></div>
+<button id="modeBtn">SWITCH TO 9-BALL</button>
+<script>
+'use strict';
+/* =====================================================================
+   PASTEL POOL (FINAL) — single-file 8-ball / 9-ball pool game
+   Modern ES6+ class architecture, sections in strict order:
+     CONFIG -> Core (pure logic: rand/shuffle, Physics, Rules, AI)
+     -> Players -> Game (state & commands) -> Renderer
+     -> Input -> Sound -> App (bootstrap & main loop)
+   The Core section (between the __CORE__ markers) is pure logic:
+   no DOM references, exported on globalThis.PastelPoolCore so
+   test/smoke.js can extract and run it in Node.
+   ===================================================================== */
+
+/* ============================ CONFIG ============================ */
+const CFG = {
+  W: 1920, H: 1080,
+  TABLE_W: 1440, TABLE_H: 720,             // playing surface px (2:1)
+  SCALE: 1440 / 2540,                      // px per mm (WPA 2540x1270 mm)
+  BALL_R: 1.5 * 28.575 * (1440 / 2540),     // ball r px, 1.5x scale (D 48.6 px)
+  RAIL_BAND: 64,                           // wood rail width px
+  TABLE_X: 176, TABLE_Y: 116,              // outer table top-left in canvas px
+  HEAD_STRING: 360,
+  FOOT_SPOT: { x: 1080, y: 360 },
+  CUE_START: { x: 360, y: 360 },
+  H_STEP: 1 / 240,                         // fixed physics substep (s)
+  V_MAX: 4000,                             // px/s speed cap (16.7 px / substep)
+  K_ROLL: 1.4, C_ROLL: 10,                 // exponential + linear rolling friction
+  STOP_V: 3,                               // px/s -> stopped
+  E_BALL: 0.95, E_CUSHION: 0.75,           // restitution
+  RAIL_EVENT_V: 20,                        // px/s debounce for rail events
+  POCKET_C: 37.5,                          // capture radius around pocket centers
+  CUE_LEN: 1450 * (1440 / 2540),           // cue stick length px
+  TIP_GAP: 8,                              // tip-to-ball-surface gap at zero power
+  PULLBACK: 200,                           // max cue pullback px
+  SHOT_SPEED: 2800,                        // px/s at power 1
+  MIN_POWER: 0.05,
+  CHARGE_RATE: 1.0,                        // power per second while mouse held (full 0->1 in 1 s)
+  FINE_AIM: 0.35,                          // mouse aim sensitivity multiplier while Shift held
+  SHOT_CLOCK: 30,                          // seconds
+  BALL_COLORS: {
+    0: '#FFF8F0',
+    1: '#FFD93D', 2: '#6EC6FF', 3: '#FF8FAB', 4: '#A78BFA',
+    5: '#FFA94D', 6: '#63E6BE', 7: '#E86A6A', 8: '#4A4A68',
+    9: '#FFD93D', 10: '#6EC6FF', 11: '#FF8FAB', 12: '#A78BFA',
+    13: '#FFA94D', 14: '#63E6BE', 15: '#E86A6A',
+  },
+  // pockets: corners inset 12 px from the rail corner; side centers 9.5 px
+  // past the rail line (y=-9.5/729.5) so the silver rim's outer edge
+  // (r + 9.5 = 54.5) exactly touches the wood's outer border (y=-64/784).
+  // Side mouths are ~88 px wide. Pockets are drawn as full circles
+  // overlapping the wooden rail (no felt clip). r = visual radius;
+  // cushion gap below is cut back to where the circle crosses the rail,
+  // so the visible dark mouth == the pocketable gap.
+  POCKETS: [
+    { x: 12, y: 12, r: 42.5 }, { x: 1428, y: 12, r: 42.5 },
+    { x: 12, y: 708, r: 42.5 }, { x: 1428, y: 708, r: 42.5 },
+    { x: 720, y: -9.5, r: 45 }, { x: 720, y: 729.5, r: 45 },
+  ],
+  // cushion segments (pocket mouth gaps excluded)
+  // corner cut-back 53 ~= 12 + sqrt(42.5^2 - 12^2) (circle crossing the rail)
+  // side cut-back 676/764 = 720 +/- sqrt(45^2 - 9.5^2)
+  // left/right cut-back 667 ~= 708 - sqrt(42.5^2 - 12^2)
+  TOP_SEGS: [[53, 676], [764, 1387]],
+  BOT_SEGS: [[53, 676], [764, 1387]],
+  LEFT_RANGE: [53, 667],
+  RIGHT_RANGE: [53, 667],
+};
+
+const TAU = Math.PI * 2;
+const T_OX = CFG.TABLE_X + CFG.RAIL_BAND, T_OY = CFG.TABLE_Y + CFG.RAIL_BAND;
+const normAng = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+
+/*__CORE_START__*/
+/* ------------------------------ RNG ----------------------------------
+   mulberry32 stateful stepper: rand(state) mutates state.rngSeed so
+   every random draw is a pure function of the serializable state. */
+function rand(state) {
+  state.rngSeed = (state.rngSeed + 0x6D2B79F5) | 0;
+  let t = state.rngSeed;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function shuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+/* --------------------------- PHYSICS --------------------------------
+   Ball store: state.balls is an array of { id, x, y, vx, vy, inPlay }.
+   Ball-ball: equal-mass impulse, e=0.95, overlap/2 positional correction.
+   Ball-cushion: normal component * 0.75, clamped inside; rail event only
+   if normal speed > RAIL_EVENT_V.  Pockets: capture center within 37.5 px,
+   or >37.5 px outside the playing rect. */
+class Physics {
+  static lowestBall(state) {
+    let lo = -1;
+    for (const b of state.balls)
+      if (b.inPlay && b.id >= 1 && b.id <= 15 && (lo === -1 || b.id < lo)) lo = b.id;
+    return lo;
+  }
+  /* Fixed substep h (1/240 s). Friction per substep:
+     v *= exp(-K_ROLL*h);  v -= sign(v)*min(C_ROLL*h, |v|) (speed-based);
+     |v| < STOP_V -> v = 0. */
+  static step(state, h, out) {
+    const ev = out || [];
+    const R = CFG.BALL_R, W = CFG.TABLE_W, H = CFG.TABLE_H;
+    const balls = state.balls;
+    const shooting = state.phase === 'shooting' && state.shot;
+    const fr = Math.exp(-CFG.K_ROLL * h);
+    const dec = CFG.C_ROLL * h;
+    for (const b of balls) {
+      if (!b.inPlay) continue;
+      if (b.vx === 0 && b.vy === 0) continue;
+      // friction acts along the velocity vector: decay the SPEED, keep the
+      // direction. (Subtracting a fixed amount per axis instead makes the
+      // smaller component die faster and the path drift up to ~15 px on
+      // shallow shots — which broke the AI's straight-line shot planning.)
+      const sp0 = Math.hypot(b.vx, b.vy);
+      const sp1 = sp0 * fr - dec;
+      if (sp1 < CFG.STOP_V) { b.vx = 0; b.vy = 0; continue; }
+      const k = sp1 / sp0;
+      b.vx *= k; b.vy *= k;
+      const sp = sp1;
+      if (sp > CFG.V_MAX) { const s = CFG.V_MAX / sp; b.vx *= s; b.vy *= s; }
+      b.x += b.vx * h; b.y += b.vy * h;
+    }
+    // pockets
+    for (const b of balls) {
+      if (!b.inPlay) continue;
+      let potted = false;
+      for (const p of CFG.POCKETS) {
+        const ddx = b.x - p.x, ddy = b.y - p.y;
+        if (ddx * ddx + ddy * ddy < CFG.POCKET_C * CFG.POCKET_C) { potted = true; break; }
+      }
+      if (!potted && Math.max(-b.x, b.x - W, -b.y, b.y - H) > CFG.POCKET_C) potted = true;
+      if (potted) {
+        b.inPlay = false; b.vx = 0; b.vy = 0;
+        ev.push({ type: 'pocket', id: b.id });
+        if (shooting) {
+          state.shot.pocketed.push(b.id);
+          if (b.id === 0) state.shot.scratch = true;
+        }
+      }
+    }
+    // ball-ball collisions (one pass per substep is enough at 240 Hz)
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i];
+      if (!a.inPlay) continue;
+      for (let j = i + 1; j < balls.length; j++) {
+        const c = balls[j];
+        if (!c.inPlay) continue;
+        let nx = c.x - a.x, ny = c.y - a.y;
+        let d = Math.hypot(nx, ny);
+        const minD = 2 * R;
+        if (d >= minD) continue;
+        if (d < 1e-6) { nx = 1; ny = 0; d = 1; }
+        nx /= d; ny /= d;
+        const corr = (minD - d) / 2;
+        a.x -= nx * corr; a.y -= ny * corr;
+        c.x += nx * corr; c.y += ny * corr;
+        const rvn = (a.vx - c.vx) * nx + (a.vy - c.vy) * ny; // > 0 = approaching
+        if (rvn > 0) {
+          const imp = -(1 + CFG.E_BALL) * rvn / 2;
+          a.vx += imp * nx; a.vy += imp * ny;
+          c.vx -= imp * nx; c.vy -= imp * ny;
+          ev.push({ type: 'hit', a: a.id, b: c.id, speed: rvn });
+          if (shooting && state.shot.firstContact === -1) {
+            if (a.id === 0) state.shot.firstContact = c.id;
+            else if (c.id === 0) state.shot.firstContact = a.id;
+          }
+        }
+      }
+    }
+    // cushions (segments exclude pocket mouths)
+    const onRail = (b, spd) => {
+      ev.push({ type: 'rail', id: b.id, speed: spd });
+      if (shooting) {
+        if (state.shot.firstContact !== -1) state.shot.railAfterContact = true;
+        if (state.shot.ballsRailed.indexOf(b.id) === -1) state.shot.ballsRailed.push(b.id);
+      }
+    };
+    for (const b of balls) {
+      if (!b.inPlay) continue;
+      for (const s of CFG.TOP_SEGS)
+        if (b.x >= s[0] && b.x <= s[1] && b.y < R && b.vy < 0) {
+          b.y = R; const spd = Math.abs(b.vy); b.vy = -b.vy * CFG.E_CUSHION;
+          if (spd > CFG.RAIL_EVENT_V) onRail(b, spd);
+        }
+      for (const s of CFG.BOT_SEGS)
+        if (b.x >= s[0] && b.x <= s[1] && b.y > H - R && b.vy > 0) {
+          b.y = H - R; const spd = Math.abs(b.vy); b.vy = -b.vy * CFG.E_CUSHION;
+          if (spd > CFG.RAIL_EVENT_V) onRail(b, spd);
+        }
+      if (b.y >= CFG.LEFT_RANGE[0] && b.y <= CFG.LEFT_RANGE[1] && b.x < R && b.vx < 0) {
+        b.x = R; const spd = Math.abs(b.vx); b.vx = -b.vx * CFG.E_CUSHION;
+        if (spd > CFG.RAIL_EVENT_V) onRail(b, spd);
+      }
+      if (b.y >= CFG.RIGHT_RANGE[0] && b.y <= CFG.RIGHT_RANGE[1] && b.x > W - R && b.vx > 0) {
+        b.x = W - R; const spd = Math.abs(b.vx); b.vx = -b.vx * CFG.E_CUSHION;
+        if (spd > CFG.RAIL_EVENT_V) onRail(b, spd);
+      }
+    }
+    return ev;
+  }
+}
+/* ------------------------------ RACKS -------------------------------
+   Deterministic from state.rngSeed. 8-ball: apex at foot spot, 8-ball in
+   row-3 center, back-row corners one solid + one stripe.
+   9-ball: 1 on foot spot, 9 dead center of the diamond. */
+class Rules {
+  static rackBalls(mode, state) {
+    const R = CFG.BALL_R;
+    const dx = 2 * R * 0.8660254, dy = 2 * R;
+    const fs = CFG.FOOT_SPOT;
+    const balls = [{ id: 0, x: CFG.CUE_START.x, y: CFG.CUE_START.y, vx: 0, vy: 0, inPlay: true }];
+    const rng = () => rand(state);
+    if (mode === '8ball') {
+      const solids = shuffle([1, 2, 3, 4, 5, 6, 7], rng);
+      const stripes = shuffle([9, 10, 11, 12, 13, 14, 15], rng);
+      const corners = shuffle([solids.pop(), stripes.pop()], rng);
+      const rest = shuffle(solids.concat(stripes), rng);
+      const slots = [];
+      for (let row = 0; row < 5; row++)
+        for (let j = 0; j <= row; j++)
+          slots.push({ x: fs.x + row * dx, y: fs.y + (j - row / 2) * dy });
+      const ids = new Array(15);
+      ids[4] = 8;                  // row 3 (index 2) center
+      ids[10] = corners[0];        // back row left corner
+      ids[14] = corners[1];        // back row right corner
+      for (let i = 0; i < 15; i++) if (ids[i] === undefined) ids[i] = rest.pop();
+      for (let i = 0; i < 15; i++)
+        balls.push({ id: ids[i], x: slots[i].x, y: slots[i].y, vx: 0, vy: 0, inPlay: true });
+    } else {
+      // 9-ball diamond, rows 1-2-3-2-1
+      const others = shuffle([2, 3, 4, 5, 6, 7, 8], rng);
+      const slots = [];
+      for (let row = 0; row < 5; row++) {
+        const n = row < 3 ? row + 1 : 5 - row;
+        for (let j = 0; j < n; j++)
+          slots.push({ x: fs.x + row * dx, y: fs.y + (j - (n - 1) / 2) * dy });
+      }
+      const ids = new Array(9);
+      ids[0] = 1;                  // apex on foot spot
+      ids[4] = 9;                  // dead center
+      let k = 0;
+      for (let i = 0; i < 9; i++) if (ids[i] === undefined) ids[i] = others[k++];
+      for (let i = 0; i < 9; i++)
+        balls.push({ id: ids[i], x: slots[i].x, y: slots[i].y, vx: 0, vy: 0, inPlay: true });
+    }
+    return balls;
+  }
+  static ballsOfGroup(state, group) {
+    if (!group) return 0;
+    let n = 0;
+    for (const b of state.balls)
+      if (b.inPlay && b.id >= 1 && b.id !== 8 &&
+        ((group === 'solid' && b.id < 8) || (group === 'stripe' && b.id > 8))) n++;
+    return n;
+  }
+  /* group was cleared *before* the current shot (for 8-ball win legality) */
+  static groupClearedBefore(state, group) {
+    if (!group) return false;
+    const own = state.shot.pocketed.filter(id =>
+      (group === 'solid' && id >= 1 && id < 8) || (group === 'stripe' && id > 8)).length;
+    return this.ballsOfGroup(state, group) + own === 0;
+  }
+  static legalFirstContact(state) {
+    if (state.mode !== '8ball') return true;
+    const s = state.shot, me = state.current;
+    const g = state.players[me].group;
+    const id = s.firstContact;
+    if (state.tableOpen || g === null) return id !== 8;   // 8 on an open table = foul
+    if (this.groupClearedBefore(state, g)) return id === 8;
+    return g === 'solid' ? (id >= 1 && id < 8) : (id > 8);
+  }
+  /* first free position: prefer spot, then outward spiral */
+  static respotPos(state, prefer) {
+    const R = CFG.BALL_R;
+    const cand = [prefer];
+    for (let r = R; r < 480; r += R)
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 8)
+        cand.push({ x: prefer.x + Math.cos(a) * r, y: prefer.y + Math.sin(a) * r });
+    const min2 = (2 * R - 1) * (2 * R - 1);
+    for (const p of cand) {
+      if (p.x < R || p.x > CFG.TABLE_W - R || p.y < R || p.y > CFG.TABLE_H - R) continue;
+      let ok = true;
+      for (const b of state.balls)
+        if (b.inPlay && (b.x - p.x) * (b.x - p.x) + (b.y - p.y) * (b.y - p.y) < min2) { ok = false; break; }
+      if (ok) return p;
+    }
+    return prefer;
+  }
+  /* Verdict for a finished shot (balls at rest). Pure function of state.
+     state.shot = { firstContact, railAfterContact, pocketed[], scratch,
+                    ballsRailed[], lowest (9-ball: lowest number at shot start) } */
+  static resolveShot(state) {
+    const s = state.shot, me = state.current;
+    const res = { foul: false, foulReason: '', winner: -1, winReason: '',
+      continueTurn: false, assignGroup: null, respot: null, rerack: false,
+      bih: null, message: '' };
+    const meP = state.players[me];
+    const cuePotted = s.scratch;
+    const potted8 = s.pocketed.indexOf(8) !== -1;
+    const potted9 = s.pocketed.indexOf(9) !== -1;
+    if (state.mode === '8ball') {
+      if (state.breakShot) {
+        // Break: never assigns groups; 8 re-spotted; scratch -> BIH behind.
+        if (potted8) res.respot = { id: 8, pos: this.respotPos(state, CFG.FOOT_SPOT) };
+        let foul = cuePotted || s.firstContact === -1;
+        res.foul = foul;
+        if (foul) {
+          res.foulReason = cuePotted ? 'Scratch on break' : 'Cue ball missed the rack';
+          res.bih = { active: true, behind: cuePotted };
+          res.message = 'Foul: ' + res.foulReason;
+        } else {
+          res.continueTurn = s.pocketed.length > 0;
+        }
+        return res;
+      }
+      if (potted8) {
+        // Own group must have been cleared before this shot AND no foul.
+        const cleared = this.groupClearedBefore(state, meP.group);
+        const noFoul = !cuePotted && s.firstContact !== -1 &&
+          this.legalFirstContact(state) && (s.railAfterContact || s.pocketed.length > 0);
+        if (!cleared || !noFoul) {
+          res.winner = 1 - me;
+          res.winReason = !cleared ? '8-ball potted before clearing group' : 'Foul while potting the 8-ball';
+        } else {
+          res.winner = me;
+          res.winReason = '8-ball potted legally';
+        }
+        return res;
+      }
+      let foul = false, reason = '';
+      if (s.firstContact === -1) { foul = true; reason = 'No ball contacted'; }
+      else if (!this.legalFirstContact(state)) { foul = true; reason = 'Illegal first contact'; }
+      else if (cuePotted) { foul = true; reason = 'Scratch'; }
+      else if (!s.railAfterContact && s.pocketed.length === 0) { foul = true; reason = 'No rail after contact'; }
+      res.foul = foul; res.foulReason = reason;
+      if (foul && this.groupClearedBefore(state, meP.group)) {
+        res.winner = 1 - me;
+        res.winReason = 'Foul while shooting the 8-ball: ' + reason;
+        return res;
+      }
+      const open = state.tableOpen || meP.group === null;
+      if (!foul && open && s.pocketed.length > 0) {
+        const sol = s.pocketed.filter(id => id >= 1 && id < 8).length;
+        const str = s.pocketed.filter(id => id > 8).length;
+        if (sol > 0 && str === 0) res.assignGroup = 'solid';
+        else if (str > 0 && sol === 0) res.assignGroup = 'stripe';
+        else if (meP.isCPU) {
+          const a = this.ballsOfGroup(state, 'solid'), b = this.ballsOfGroup(state, 'stripe');
+          res.assignGroup = a >= b ? 'solid' : 'stripe';   // CPU picks majority
+        }
+        // human + both groups: table stays open (shooter effectively chooses)
+      }
+      if (foul) {
+        res.bih = { active: true, behind: false };
+        res.message = 'Foul: ' + reason;
+        return res;
+      }
+      if (open) res.continueTurn = s.pocketed.length > 0;
+      else {
+        const g = meP.group;
+        res.continueTurn = s.pocketed.some(id =>
+          (g === 'solid' && id >= 1 && id < 8) || (g === 'stripe' && id > 8));
+      }
+      return res;
+    }
+    /* ------------------------------ 9-ball ----------------------------- */
+    if (state.breakShot) {
+      let foul = false, reason = '';
+      if (s.firstContact === -1) { foul = true; reason = 'No ball contacted'; }
+      if (cuePotted) { foul = true; reason = 'Scratch on break'; }
+      res.foul = foul; res.foulReason = reason;
+      if (foul && cuePotted) {
+        res.bih = { active: true, behind: true };
+        res.message = 'Foul: ' + reason;
+        return res;
+      }
+      if (potted9) res.respot = { id: 9, pos: this.respotPos(state, CFG.FOOT_SPOT) };
+      const needRerack = s.pocketed.length === 0 && s.ballsRailed.length < 4;
+      if (foul || needRerack) {
+        res.rerack = true;
+        res.message = 'Break foul - re-rack, same player breaks';
+        return res;
+      }
+      res.continueTurn = true;
+      return res;
+    }
+    let foul = false, reason = '';
+    if (s.firstContact === -1) { foul = true; reason = 'No ball contacted'; }
+    else if (s.lowest > 0 && s.firstContact !== s.lowest) { foul = true; reason = 'Must hit ball ' + s.lowest + ' first'; }
+    else if (cuePotted) { foul = true; reason = 'Scratch'; }
+    else if (!s.railAfterContact && s.pocketed.length === 0) { foul = true; reason = 'No rail after contact'; }
+    res.foul = foul; res.foulReason = reason;
+    if (potted9) {
+      // WPA: the 9 may be potted at any time; a legal shot (lowest ball first,
+      // no scratch) that pots it wins, even if a lower ball was first contact.
+      if (!foul) {
+        res.winner = me;
+        res.winReason = '9-ball potted legally';
+        return res;
+      }
+      res.respot = { id: 9, pos: this.respotPos(state, CFG.FOOT_SPOT) };
+    }
+    if (foul) {
+      res.bih = { active: true, behind: false };
+      res.message = 'Foul: ' + reason;
+      return res;
+    }
+    res.continueTurn = s.pocketed.length > 0;
+    return res;
+  }
+}
+/* ------------------------------- AI ----------------------------------
+   For each legal object ball x 6 pockets solve the ghost ball
+   G = obj - 2R * norm(obj - pocket). Reject if the cut angle is too
+   shallow (minCut per level), the cue->ghost segment is occluded,
+   or the cue path passes within 34 px of a pocket. Best score wins;
+   escape check (cue stop near a pocket) falls back to a soft legal
+   hit at medium level and above. Aim jitter from the seeded rng.  */
+class AI {
+  static LEVELS = {
+    easy: { cut: 0.05, jitterDeg: 1.5 },
+    medium: { cut: 0.20, jitterDeg: 0.6 },
+    hard: { cut: 0.35, jitterDeg: 0.15 },
+  };
+  static segPointDist(x1, y1, x2, y2, px, py) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const l2 = dx * dx + dy * dy;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+  /* Cue-ball stop estimate: equal-mass post-impact velocity is the       */
+  /* tangential component of the shot velocity, integrated under the      */
+  /* friction model for up to 2 s.                                        */
+  static cueStop(gx, gy, ax, ay, ux, uy, power) {
+    const v0 = power * CFG.SHOT_SPEED;
+    const dot = v0 * (ax * ux + ay * uy);
+    let vx = v0 * ax - dot * ux, vy = v0 * ay - dot * uy;
+    let x = gx, y = gy;
+    const h = CFG.H_STEP;
+    const fr = Math.exp(-CFG.K_ROLL * h), dec = CFG.C_ROLL * h;
+    for (let i = 0; i < 480; i++) {
+      vx *= fr; vy *= fr;
+      vx -= Math.sign(vx) * Math.min(dec, Math.abs(vx));
+      vy -= Math.sign(vy) * Math.min(dec, Math.abs(vy));
+      if (vx * vx + vy * vy < CFG.STOP_V * CFG.STOP_V) break;
+      x += vx * h; y += vy * h;
+    }
+    return { x, y };
+  }
+  static decide(state, level) {
+    const cfg = AI.LEVELS[level] || AI.LEVELS.medium;
+    const cue = state.balls[0];
+    const R = CFG.BALL_R;
+    if (!cue.inPlay) return null;
+    if (state.breakShot) {
+      const dy = (rand(state) * 2 - 1) * 0.03;
+      return { dx: 1, dy, power: 1.0 };  // full-power break (1.5x balls) reliably rails 4+
+    }
+    // "soft" shot power: scaled with distance so the cue actually reaches the
+    // target (at 0.2 the cue stops after ~400 px and a distant target is a
+    // guaranteed no-contact foul).
+    const softPower = d => Math.max(0.2, Math.min(0.6, d / 1200));
+    // legal targets
+    let targets;
+    if (state.mode === '9ball') {
+      const lo = Physics.lowestBall(state);
+      targets = lo > 0 ? state.balls.filter(b => b.inPlay && b.id === lo) : [];
+    } else {
+      const g = state.players[state.current].group;
+      const open = state.tableOpen || g === null;
+      if (open) targets = state.balls.filter(b => b.inPlay && b.id >= 1 && b.id !== 8);
+      else if (Rules.ballsOfGroup(state, g) === 0)
+        targets = state.balls.filter(b => b.inPlay && b.id === 8);
+      else targets = state.balls.filter(b => b.inPlay && b.id >= 1 &&
+        (g === 'solid' ? b.id < 8 : b.id > 8));
+    }
+    if (!targets.length) return null;
+    const blocked = (x1, y1, x2, y2, skipA, skipB) => {
+      for (const b of state.balls) {
+        if (!b.inPlay || b.id === skipA || b.id === skipB) continue;
+        // reject if the cue center's path comes within touching distance (2R);
+        // any tighter and the cue physically clips this ball
+        if (AI.segPointDist(x1, y1, x2, y2, b.x, b.y) < 2 * R) return true;
+      }
+      return false;
+    };
+    let best = null;
+    for (const t of targets) {
+      for (const p of CFG.POCKETS) {
+        const ox = p.x - t.x, oy = p.y - t.y;
+        const od = Math.hypot(ox, oy);
+        if (od < 1) continue;
+        const ux = ox / od, uy = oy / od;
+        const gx = t.x - 2 * R * ux, gy = t.y - 2 * R * uy;
+        const cx = gx - cue.x, cy = gy - cue.y;
+        const cd = Math.hypot(cx, cy);
+        if (cd < 1) continue;
+        const ax = cx / cd, ay = cy / cd;
+        const cut = ax * ux + ay * uy;
+        if (cut < cfg.cut) continue;
+        if (blocked(cue.x, cue.y, gx, gy, 0, t.id)) continue;
+        let nearPocket = false;
+        for (const pk of CFG.POCKETS)
+          if (AI.segPointDist(cue.x, cue.y, gx, gy, pk.x, pk.y) < 42) { nearPocket = true; break; }
+        if (nearPocket) continue;
+        const score = 1 / (1 - cut + 0.002) + 1 / (cd + 1);
+        if (!best || score > best.score)
+          best = { t, gx, gy, ux, uy, ax, ay, cut, score, cd, od };
+      }
+    }
+    let dx, dy, power;
+    if (!best) {
+      // nothing shapely: soft legal hit at the nearest legal target that has a
+      // CLEAR straight line (a straight center shot is legal only if nothing
+      // stands between the cue and the ball)
+      let t = null, bestD2 = Infinity;
+      for (const c of targets) {
+        const d2 = (c.x - cue.x) * (c.x - cue.x) + (c.y - cue.y) * (c.y - cue.y);
+        if (d2 < bestD2 && !blocked(cue.x, cue.y, c.x, c.y, 0, c.id)) { bestD2 = d2; t = c; }
+      }
+      if (!t) {
+        // Every CENTER line to every legal ball is occluded. A legal first
+        // contact may still exist off-center: aim at the edge of a legal
+        // ball so the line slips past the occluder. Jitter-robust search:
+        // the target's contact angular window is shrunk by the jitter
+        // angle and each occluder's is expanded by it, so any direction
+        // that survives is legal for EVERY possible jitter draw. (The
+        // margin must be in angle space, not distance, or thin corridors
+        // are rejected.)
+        const jitA = cfg.jitterDeg * Math.PI / 180;
+        let tap = null, tapClear = -Infinity;
+        for (const c of targets) {
+          const dxc = c.x - cue.x, dyc = c.y - cue.y;
+          const dT = Math.hypot(dxc, dyc);
+          if (dT < 2 * R + 2) continue;
+          // work in base-relative angles so the target window is simply
+          // [-half, +half] (no wraparound math)
+          const base = Math.atan2(dyc, dxc);
+          const half = Math.asin(Math.min(1, 2 * R / dT));
+          let lo = -half + jitA, hi = half - jitA;
+          if (lo >= hi) continue;
+          const windows = []; // relative windows that would clip each ball
+          for (const bb of state.balls) {
+            if (!bb.inPlay || bb.id === 0 || bb.id === c.id) continue;
+            const dxb = bb.x - cue.x, dyb = bb.y - cue.y;
+            const db = Math.hypot(dxb, dyb);
+            // a ball farther than dT + 2R cannot be contacted before the
+            // target, so it can never block this tap
+            if (db < 2 * R + 1 || db > dT + 2 * R) continue;
+            let rel = Math.atan2(dyb, dxb) - base;
+            while (rel > Math.PI) rel -= 2 * Math.PI;
+            while (rel < -Math.PI) rel += 2 * Math.PI;
+            const hb = Math.asin(Math.min(1, 2 * R / db)) + jitA;
+            windows.push([rel - hb, rel + hb]);
+          }
+          // open sub-windows inside [lo, hi]
+          const opens = [];
+          for (const [a, z] of windows.sort((p, q) => p[0] - q[0])) {
+            if (z < lo || a > hi) continue;
+            if (a > lo) opens.push([lo, a]);
+            lo = Math.max(lo, z);
+          }
+          if (lo < hi) opens.push([lo, hi]);
+          // candidate directions: centers of the open windows, each
+          // verified exactly on three rays (nominal and both jitter extremes)
+          for (const [o1, o2] of opens) {
+            const th = base + (o1 + o2) / 2;   // back to absolute angle
+            let ok = true, clear = Infinity;
+            for (const dth of [0, jitA, -jitA]) {
+              const ux = Math.cos(th + dth), uy = Math.sin(th + dth);
+              const b = dxc * uy - dyc * ux;   // impact parameter
+              const reach = Math.sqrt(Math.max(0, dT * dT - b * b));
+              for (const bb of state.balls) {
+                if (!bb.inPlay || bb.id === 0 || bb.id === c.id) continue;
+                const dd = AI.segPointDist(cue.x, cue.y,
+                  cue.x + ux * reach, cue.y + uy * reach, bb.x, bb.y);
+                if (dd < 2 * R) { ok = false; break; }
+                if (dd < clear) clear = dd;
+              }
+              if (!ok) break;
+            }
+            if (ok && clear > tapClear) {
+              tapClear = clear;
+              tap = {
+                c, ux: Math.cos(th), uy: Math.sin(th),
+                reach: Math.sqrt(Math.max(0, dT * dT -
+                  (dxc * Math.sin(th) - dyc * Math.cos(th)) ** 2)),
+              };
+            }
+          }
+        }
+        if (tap) {
+          dx = tap.ux; dy = tap.uy;
+          // enough power to actually REACH the contact point (short taps at
+          // 0.2 power travel <300px and miss distant targets)
+          power = Math.max(0.25, Math.min(1, 0.25 + tap.reach / 2400));
+        } else {
+          // true dead end: no direction first-touches a legal ball. Take
+          // the fouling line with the earliest, gentlest contact to disturb
+          // the table as little as possible before the opponent's hand.
+          let cand = null, candKey = null;
+          for (const c of targets) {
+            const dxc = c.x - cue.x, dyc = c.y - cue.y;
+            const dT = Math.hypot(dxc, dyc) || 1;
+            let occl = null, op = 0, oPerp = 0;
+            for (const b of state.balls) {
+              if (!b.inPlay || b.id === 0 || b.id === c.id) continue;
+              const p = ((b.x - cue.x) * dxc + (b.y - cue.y) * dyc) / dT;
+              if (p <= 0 || p >= dT - 2 * R) continue;
+              const perp = Math.abs((b.x - cue.x) * dyc - (b.y - cue.y) * dxc) / dT;
+              if (perp < 2 * R && p < op - 1e-9) { op = p; oPerp = perp; occl = b; }
+            }
+            if (!occl) { cand = c; candKey = [0, 0]; break; }
+            const key = targets.some(x => x.id === occl.id) ? [0, op] : [1, op, -oPerp];
+            if (!candKey ||
+                key[0] < candKey[0] ||
+                (key[0] === candKey[0] && key[1] < candKey[1]) ||
+                (key[0] === candKey[0] && key[1] === candKey[1] && key.length > candKey.length && key[2] < candKey[2])) {
+              candKey = key; cand = c;
+            }
+          }
+          t = cand || targets[0];
+          const d = Math.hypot(t.x - cue.x, t.y - cue.y) || 1;
+          dx = (t.x - cue.x) / d; dy = (t.y - cue.y) / d;
+          power = softPower(d);
+        }
+      } else {
+        const d = Math.hypot(t.x - cue.x, t.y - cue.y) || 1;
+        dx = (t.x - cue.x) / d; dy = (t.y - cue.y) / d;
+        power = softPower(d);
+      }
+    } else {
+      // actual shot power for the cue-stop check (a fixed 0.6 estimate
+      // underestimates travel on long shots -> cue drifts into a pocket)
+      power = Math.max(0.25, Math.min(1, 0.25 + (best.cd + 0.5 * best.od) / 2400));
+      const stop = AI.cueStop(best.gx, best.gy, best.ax, best.ay, best.ux, best.uy, power);
+      let danger = false;
+      for (const pk of CFG.POCKETS)
+        if ((stop.x - pk.x) * (stop.x - pk.x) + (stop.y - pk.y) * (stop.y - pk.y) < 80 * 80) { danger = true; break; }
+      if (danger && level !== 'easy') {
+        // escape: soft touch along the VALIDATED cue->ghost line. (The straight
+        // line to the ball center can pass through other balls that the ghost
+        // line avoids -> illegal first contact.)
+        dx = best.ax; dy = best.ay;
+        power = softPower(best.cd);
+      } else {
+        dx = best.ax; dy = best.ay;
+      }
+    }
+    const jit = (rand(state) * 2 - 1) * cfg.jitterDeg * Math.PI / 180;
+    const cA = Math.cos(jit), sA = Math.sin(jit);
+    const outX = dx * cA - dy * sA, outY = dx * sA + dy * cA;
+    return { dx: outX, dy: outY, power };
+  }
+}
+globalThis.PastelPoolCore = { CFG, rand, shuffle, Physics, Rules, AI };
+/*__CORE_END__*/
+
+/* ===================== Raster stability blit ====================== */
+// Workaround for a Chromium (Brave/vanilla) canvas re-rasterization bug
+// that jiggles the table ~1px ~1/sec during ball-in-hand (Firefox is
+// unaffected). Renderer.stabilityBlitFrame() runs at the end of every
+// render(): a per-frame getBoundingClientRect() sync flush plus a late,
+// 1x1 pixel-identical no-op blit (see drawStabilityBlit) that dirties
+// the compositor tile without changing any pixels, so it never
+// re-rasterizes with sub-pixel drift.
+// Regression note if the jitter ever returns: restore a LARGER late
+// blit — the 640x118 rect at (16, CFG.H-138) cured it; that's the whole
+// remaining ladder.
+
+/* ============================ Players ============================= */
+/* Human and CPU implement the same interface; a remote player slot   */
+/* would implement it too (decideShot could come over the wire).      */
+class Player {
+  constructor(name) { this.name = name; this.isCPU = false; this.aiLevel = null; }
+  onTurnStart() {}
+  decideShot(state) {
+    return { dx: Math.cos(state.aim.angle), dy: Math.sin(state.aim.angle), power: state.aim.power };
+  }
+  onTurnEnd() {}
+  static of(state, idx) {
+    const p = state.players[idx];
+    return p.isCPU ? new CPUPlayer(p.name, p.aiLevel) : new HumanPlayer(p.name);
+  }
+}
+class HumanPlayer extends Player {
+  constructor(name) { super(name); this.isCPU = false; }
+}
+class CPUPlayer extends Player {
+  constructor(name, aiLevel) { super(name); this.isCPU = true; this.aiLevel = aiLevel; }
+  onTurnStart(state) { state.cpu.thinkRemain = 0.6; }   // 600 ms think (timer, not busy loop)
+  decideShot(state) { return AI.decide(state, this.aiLevel); }
+}
+
+/* ======================== State / Commands ========================= */
+/* Owns the serializable plain-object game store (state, null = menu), */
+/* the per-frame event log, and every game command.                   */
+class Game {
+  constructor(settings) {
+    this.settings = settings;
+    this.state = null;
+    this.events = [];           // per-frame event log for sfx / animation
+    this.physAcc = 0;           // physics accumulator (s)
+    this.menuScreen = 'main';   // 'main' | 'instructions' (menu sub-screen)
+  }
+  isAimPhase() { return !!(this.state && (this.state.phase === 'aiming' || this.state.phase === 'breakAim')); }
+  humanAiming() { return this.isAimPhase() && !this.state.players[this.state.current].isCPU; }
+  static clampPower(p) { return Math.max(CFG.MIN_POWER, Math.min(1, p)); }
+  // A human's turn is (re)starting: the power gauge resets to empty.
+  humanTurnStart() { if (!this.state.players[this.state.current].isCPU) this.state.aim.power = 0; }
+  // Point the cue stick at the CPU's planned shot (null = no decision: straight
+  // ahead at low power).
+  applyCpuAim(d) {
+    if (d) { this.state.aim.angle = Math.atan2(d.dy, d.dx); this.state.aim.power = Game.clampPower(d.power); }
+    else { this.state.aim.angle = 0; this.state.aim.power = 0.2; }
+  }
+  // Per-shot record. lowest is filled in by doShoot (9-ball: lowest ball at
+  // shot start; -1 for 8-ball).
+  freshShot() {
+    return { firstContact: -1, railAfterContact: false, pocketed: [], scratch: false,
+             ballsRailed: [], lowest: -1 };
+  }
+  setMessage(m) { this.state.message = m; this.state.msgT = 4; }
+  newGame() {
+    this.state = {
+      mode: this.settings.mode, phase: 'breakAim',
+      players: [
+        { name: 'Player 1', group: null, isCPU: false, aiLevel: null },
+        { name: this.settings.vsCPU ? 'CPU (' + this.settings.aiLevel + ')' : 'Player 2',
+          group: null, isCPU: this.settings.vsCPU, aiLevel: this.settings.vsCPU ? this.settings.aiLevel : null },
+      ],
+      current: Math.random() < 0.5 ? 0 : 1, tableOpen: true,  // fair 50/50 coin-flip break
+      balls: [],  // racked below; racking advances state.rngSeed
+      shot: this.freshShot(),
+      ballsInHand: { active: false, behind: false },
+      winner: -1, winReason: '', message: '', msgT: 0,
+      shotClock: { on: this.settings.shotClockOn, remain: CFG.SHOT_CLOCK },
+      rngSeed: (Math.random() * 0xFFFFFFFF) >>> 0, breakShot: true,
+      aim: { angle: 0, power: 0 },
+      cpu: { thinkRemain: 0.6, decision: null, decisionKey: null },
+    };
+    this.state.balls = Rules.rackBalls(this.state.mode, this.state);
+  }
+  doShoot() {
+    if (!this.state) return;
+    const c = this.state.balls[0];
+    if (!c.inPlay) return;
+    const a = this.state.aim.angle;
+    const p = Game.clampPower(this.state.aim.power);
+    c.vx = Math.cos(a) * p * CFG.SHOT_SPEED;
+    c.vy = Math.sin(a) * p * CFG.SHOT_SPEED;
+    this.state.shot = this.freshShot();
+    this.state.shot.lowest = this.state.mode === '9ball' ? Physics.lowestBall(this.state) : -1;
+    this.state.phase = 'shooting';
+    this.physAcc = 0;
+    this.state.message = ''; this.state.msgT = 0;
+    this.events.push({ type: 'cuehit', power: p });
+  }
+  canPlace(x, y) {
+    const R = CFG.BALL_R;
+    if (x < R || x > CFG.TABLE_W - R || y < R || y > CFG.TABLE_H - R) return false;
+    if (this.state.ballsInHand.behind && x > CFG.HEAD_STRING) return false;
+    const minD = 2 * R - 0.5;
+    for (const b of this.state.balls)
+      if (b.inPlay && b.id !== 0 && (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y) < minD * minD) return false;
+    for (const p of CFG.POCKETS)
+      if ((p.x - x) * (p.x - x) + (p.y - y) * (p.y - y) < (p.r + R - 0.5) * (p.r + R - 0.5)) return false;
+    return true;
+  }
+  doPlaceCue(x, y) {
+    if (!this.state || !this.state.ballsInHand.active) return false;
+    if (!this.canPlace(x, y)) return false;
+    const c = this.state.balls[0];
+    c.inPlay = true; c.x = x; c.y = y; c.vx = 0; c.vy = 0;
+    this.state.ballsInHand = { active: false, behind: false };
+    this.state.phase = 'aiming';
+    this.state.aim.power = 0;  // fresh aiming turn after ball-in-hand -> gauge starts empty
+    this.state.shotClock.remain = CFG.SHOT_CLOCK;
+    this.state.message = ''; this.state.msgT = 0;
+    this.events.push({ type: 'place' });
+    return true;
+  }
+  doPlaceAI() {
+    const R = CFG.BALL_R;
+    const pref = this.state.ballsInHand.behind ? { x: 180, y: 360 } : { x: 720, y: 240 };
+    let spot = this.canPlace(pref.x, pref.y) ? pref : null;
+    for (let r = R; r < 1000 && !spot; r += 20)
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 10) {
+        const x = pref.x + Math.cos(a) * r, y = pref.y + Math.sin(a) * r;
+        if (this.canPlace(x, y)) { spot = { x, y }; break; }
+      }
+    if (spot) this.doPlaceCue(spot.x, spot.y);
+  }
+  anyMoving() { return this.state.balls.some(b => b.inPlay && (b.vx !== 0 || b.vy !== 0)); }
+  afterShot() {
+    const r = Rules.resolveShot(this.state);
+    if (r.respot) {
+      const b = this.state.balls.find(x => x.id === r.respot.id);
+      b.inPlay = true; b.x = r.respot.pos.x; b.y = r.respot.pos.y; b.vx = 0; b.vy = 0;
+      this.events.push({ type: 'respot', id: r.respot.id });
+    }
+    this.state.shotClock.remain = CFG.SHOT_CLOCK;
+    if (r.winner !== -1) {
+      this.state.winner = r.winner; this.state.winReason = r.winReason; this.state.phase = 'gameOver';
+      this.events.push({ type: 'win' });
+      return;
+    }
+    if (r.assignGroup) {
+      this.state.players[this.state.current].group = r.assignGroup;
+      this.state.players[1 - this.state.current].group =
+        r.assignGroup === 'solid' ? 'stripe' : 'solid';
+      this.state.tableOpen = false;
+      this.setMessage((this.state.current === 0 ? 'Player 1' : this.state.players[1].name) +
+        ' is ' + (r.assignGroup === 'solid' ? 'SOLIDS' : 'STRIPES'));
+    }
+    if (r.rerack) {
+      this.state.balls = Rules.rackBalls(this.state.mode, this.state);
+      this.state.breakShot = true;
+      this.state.ballsInHand = { active: false, behind: false };
+      this.state.phase = 'breakAim';
+      this.setMessage(r.message || 'Re-rack - same player breaks');
+      this.state.cpu.thinkRemain = 0.8;
+      this.humanTurnStart();  // human re-breaks: gauge starts empty
+      return;  // same player breaks again
+    }
+    this.state.breakShot = false;
+    const cueGone = !this.state.balls[0].inPlay;
+    const bih = (r.foul && r.bih) ? r.bih
+             : (cueGone ? { active: true, behind: false } : { active: false, behind: false });
+    if (r.foul) this.setMessage(r.message || 'Foul');
+    const pass = r.foul || !r.continueTurn;
+    this.state.current = pass ? 1 - this.state.current : this.state.current;
+    this.humanTurnStart();  // gauge empty, waiting to charge
+    if (bih.active) { this.state.ballsInHand = { active: true, behind: bih.behind }; this.state.phase = 'ballsInHand'; }
+    else { this.state.ballsInHand = { active: false, behind: false }; this.state.phase = 'aiming'; }
+    Player.of(this.state, this.state.current).onTurnStart(this.state);
+  }
+  tick(dt, input) {
+    if (input.mouse.charging) {
+      const cp = this.state.players[this.state.current];
+      if (cp.isCPU || !this.isAimPhase()) {
+        input.mouse.charging = false; this.state.aim.power = 0;  // phase changed (e.g. shot clock expired) -> cancel
+      } else {
+        input.mouse.chargeT += dt;
+        const p = input.mouse.chargeT * CFG.CHARGE_RATE % 2;
+        this.state.aim.power = p < 1 ? p : 2 - p;  // ping-pong 0->1->0, period 2 s
+      }
+    }
+    // held-key aim rotation (2 deg / frame)
+    if (this.humanAiming()) {
+      if (input.heldKeys.has('L')) this.state.aim.angle -= 2 * Math.PI / 180;
+      if (input.heldKeys.has('R')) this.state.aim.angle += 2 * Math.PI / 180;
+    }
+    if (this.state.phase === 'shooting') {
+      this.physAcc += Math.min(dt, 0.1);
+      const h = CFG.H_STEP;
+      let guard = 0;
+      while (this.physAcc >= h && this.state.phase === 'shooting' && guard++ < 200) {
+        Physics.step(this.state, h, this.events);
+        this.physAcc -= h;
+      }
+      if (this.state.phase === 'shooting' && !this.anyMoving()) {
+        this.physAcc = 0;
+        this.afterShot();
+      }
+    }
+    if (this.state.shotClock.on &&
+        (this.state.phase === 'aiming' || this.state.phase === 'breakAim' || this.state.phase === 'ballsInHand')) {
+      this.state.shotClock.remain -= dt;
+      if (this.state.shotClock.remain <= 0) {
+        this.state.current = 1 - this.state.current;
+        this.humanTurnStart();
+        this.state.breakShot = false;
+        this.state.ballsInHand = { active: true, behind: false };
+        this.state.phase = 'ballsInHand';
+        this.state.shotClock.remain = CFG.SHOT_CLOCK;
+        this.setMessage('Shot clock expired - ball in hand');
+        Player.of(this.state, this.state.current).onTurnStart(this.state);
+      }
+    }
+    const cp = this.state.players[this.state.current];
+    if (cp.isCPU) {
+      if (this.state.phase === 'ballsInHand') {
+        this.state.cpu.thinkRemain -= dt;
+        if (this.state.cpu.thinkRemain <= 0) { this.doPlaceAI(); this.state.cpu.thinkRemain = 0.5; }
+      } else if (this.isAimPhase()) {
+        // Pre-compute the AI shot as soon as the cue is on the table so the cue
+        // stick / aim line visually line up with the shot during the think pause.
+        // Keyed by cue position: recomputed after ball-in-hand placement or
+        // re-rack, and AI.decide (seeded rng) runs exactly once per shot.
+        const c = this.state.balls[0];
+        const key = c.inPlay ? ((c.x * 1000) | 0) + ',' + ((c.y * 1000) | 0) : null;
+        if (key !== this.state.cpu.decisionKey) {
+          this.state.cpu.decision = key ? Player.of(this.state, this.state.current).decideShot(this.state) : null;
+          this.state.cpu.decisionKey = key;
+        }
+        this.state.cpu.thinkRemain -= dt;
+        this.applyCpuAim(this.state.cpu.decision);
+        if (this.state.cpu.thinkRemain <= 0) this.doShoot();
+      }
+    }
+    if (this.state.msgT > 0) this.state.msgT -= dt;
+  }
+  applyCommand(cmd) {
+    switch (cmd.type) {
+      case 'menu': this.state = null; return;
+      case 'start':
+      case 'rematch': this.newGame(); return;
+      case 'aim':
+        if (this.state && (this.isAimPhase() || this.state.phase === 'ballsInHand')) {
+          this.state.aim.angle = cmd.angle;
+          this.state.aim.power = Game.clampPower(cmd.power);
+        }
+        return;
+      case 'shoot':
+        if (this.humanAiming() && this.state.aim.power >= CFG.MIN_POWER) this.doShoot();  // 0 power (e.g. Enter at rest) = no-op, matches tap-cancel
+        return;
+      case 'placeCue':
+        if (this.state && this.state.ballsInHand.active && !this.state.players[this.state.current].isCPU)
+          this.doPlaceCue(cmd.x, cmd.y);
+        return;
+      case 'placeAI':
+        if (this.state && this.state.ballsInHand.active && this.state.players[this.state.current].isCPU) this.doPlaceAI();
+        return;
+      case 'tick':
+        if (this.state) this.tick(cmd.dt, cmd.input);
+        return;
+    }
+  }
+}
+
+/* =========================== Renderer ============================= */
+/* Direct-draw architecture: the game renders straight onto #cv's     */
+/* backing store in 1920x1080 game px under an identity (or           */
+/* integer-dpr) transform; the compositor then scales the canvas      */
+/* texture to the CSS size exactly like an <img>. No per-frame        */
+/* whole-scene resampling => no raster jitter. HiDPI tradeoff: if     */
+/* devicePixelRatio is a positive INTEGER the backing store is        */
+/* W*dpr x H*dpr (crisp); for any other dpr it stays 1x and the       */
+/* compositor upscaling makes it slightly soft, but always stable.    */
+function rr(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+class Renderer {
+  constructor(app) {
+    this.app = app;
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    this.tableCv = document.createElement('canvas');
+    this.tableCv.width = CFG.W; this.tableCv.height = CFG.H;
+    this.uiBtns = [];
+    this.viewBH = 1;   // element height in device px (set by fit; drives the bob quantization)
+    this.bsScale = 0;  // current backing-store scale (0 = unset)
+  }
+  tx(x) { return x + T_OX; }
+  ty(y) { return y + T_OY; }
+  static baseColor(id) {
+    return id === 0 ? '#FFF8F0' : id <= 8 ? CFG.BALL_COLORS[id] : '#FFF6E9';
+  }
+  buildTable() {
+    const c = this.tableCv.getContext('2d');
+    const g = c.createLinearGradient(0, 0, 0, CFG.H);
+    g.addColorStop(0, '#FFE9F3'); g.addColorStop(1, '#E3F2FF');
+    c.fillStyle = g; c.fillRect(0, 0, CFG.W, CFG.H);
+    // wood rails
+    rr(c, CFG.TABLE_X, CFG.TABLE_Y, 1568, 848, 28);
+    const wg = c.createLinearGradient(0, CFG.TABLE_Y, 0, CFG.TABLE_Y + 848);
+    wg.addColorStop(0, '#ECC089'); wg.addColorStop(1, '#D9A066');
+    c.fillStyle = wg; c.fill();
+    c.lineWidth = 4; c.strokeStyle = '#B97F45'; c.stroke();
+    // felt
+    const fx = T_OX, fy = T_OY;
+    c.save();
+    rr(c, fx, fy, CFG.TABLE_W, CFG.TABLE_H, 14);
+    c.clip();
+    const cg = c.createRadialGradient(fx + 720, fy + 360, 60, fx + 720, fy + 360, 900);
+    cg.addColorStop(0, '#A8E6C0'); cg.addColorStop(0.55, '#7CCB97'); cg.addColorStop(1, '#5FBE84');
+    c.fillStyle = cg; c.fillRect(fx - 4, fy - 4, CFG.TABLE_W + 8, CFG.TABLE_H + 8);
+    for (let i = 0; i < 2000; i++) {
+      c.globalAlpha = 0.03;
+      c.fillStyle = Math.random() < 0.5 ? '#FFFFFF' : '#3A6B4F';
+      c.beginPath();
+      c.arc(fx + Math.random() * CFG.TABLE_W, fy + Math.random() * CFG.TABLE_H,
+            1 + Math.random(), 0, TAU);
+      c.fill();
+    }
+    c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(255,255,255,0.22)'; c.setLineDash([8, 10]); c.lineWidth = 2;
+    c.beginPath(); c.moveTo(fx + CFG.HEAD_STRING, fy); c.lineTo(fx + CFG.HEAD_STRING, fy + CFG.TABLE_H); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = 'rgba(255,255,255,0.5)';
+    c.beginPath(); c.arc(fx + CFG.FOOT_SPOT.x, fy + CFG.FOOT_SPOT.y, 4, 0, TAU); c.fill();
+    // inner shadow: raised rail casts a shadow onto the felt (light upper-left)
+    let sg = c.createLinearGradient(fx, fy, fx, fy + 30);
+    sg.addColorStop(0, 'rgba(40,30,50,0.22)'); sg.addColorStop(1, 'rgba(40,30,50,0)');
+    c.fillStyle = sg; c.fillRect(fx, fy, CFG.TABLE_W, 30);
+    sg = c.createLinearGradient(fx, fy, fx + 30, fy);
+    sg.addColorStop(0, 'rgba(40,30,50,0.20)'); sg.addColorStop(1, 'rgba(40,30,50,0)');
+    c.fillStyle = sg; c.fillRect(fx, fy, 30, CFG.TABLE_H);
+    // faint wrap so the right/bottom edges also read as raised
+    sg = c.createLinearGradient(fx + CFG.TABLE_W - 16, fy, fx + CFG.TABLE_W, fy);
+    sg.addColorStop(0, 'rgba(40,30,50,0)'); sg.addColorStop(1, 'rgba(40,30,50,0.08)');
+    c.fillStyle = sg; c.fillRect(fx + CFG.TABLE_W - 16, fy, 16, CFG.TABLE_H);
+    sg = c.createLinearGradient(fx, fy + CFG.TABLE_H - 16, fx, fy + CFG.TABLE_H);
+    sg.addColorStop(0, 'rgba(40,30,50,0)'); sg.addColorStop(1, 'rgba(40,30,50,0.08)');
+    c.fillStyle = sg; c.fillRect(fx, fy + CFG.TABLE_H - 16, CFG.TABLE_W, 16);
+    c.restore();
+    // decorative silver rim following the curve of each hole, clipped to
+    // the wood band (outer frame minus felt) so it never paints over the felt
+    c.save();
+    c.beginPath();
+    // outer rounded rect (wood frame): TABLE_X, TABLE_Y, 1568, 848, r 28
+    c.moveTo(CFG.TABLE_X + 28, CFG.TABLE_Y);
+    c.arcTo(CFG.TABLE_X + 1568, CFG.TABLE_Y, CFG.TABLE_X + 1568, CFG.TABLE_Y + 848, 28);
+    c.arcTo(CFG.TABLE_X + 1568, CFG.TABLE_Y + 848, CFG.TABLE_X, CFG.TABLE_Y + 848, 28);
+    c.arcTo(CFG.TABLE_X, CFG.TABLE_Y + 848, CFG.TABLE_X, CFG.TABLE_Y, 28);
+    c.arcTo(CFG.TABLE_X, CFG.TABLE_Y, CFG.TABLE_X + 1568, CFG.TABLE_Y, 28);
+    c.closePath();
+    // inner felt rect (hole): T_OX, T_OY, TABLE_W, TABLE_H, r 14
+    c.moveTo(T_OX + 14, T_OY);
+    c.arcTo(T_OX + CFG.TABLE_W, T_OY, T_OX + CFG.TABLE_W, T_OY + CFG.TABLE_H, 14);
+    c.arcTo(T_OX + CFG.TABLE_W, T_OY + CFG.TABLE_H, T_OX, T_OY + CFG.TABLE_H, 14);
+    c.arcTo(T_OX, T_OY + CFG.TABLE_H, T_OX, T_OY, 14);
+    c.arcTo(T_OX, T_OY, T_OX + CFG.TABLE_W, T_OY, 14);
+    c.closePath();
+    c.clip('evenodd');
+    for (const p of CFG.POCKETS) {
+      const px = this.tx(p.x), py = this.ty(p.y);
+      const rg = c.createLinearGradient(px - p.r, py - p.r, px + p.r, py + p.r);
+      rg.addColorStop(0, '#F2F3F7'); rg.addColorStop(0.5, '#C9CCD8'); rg.addColorStop(1, '#8F93A3');
+      c.strokeStyle = rg; c.lineWidth = 6;
+      c.beginPath(); c.arc(px, py, p.r + 6, 0, TAU); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(px, py, p.r + 9.5, 0, TAU); c.stroke();
+    }
+    c.restore();
+    // pocket holes (full circles overlapping the wooden rail)
+    for (const p of CFG.POCKETS) {
+      const px = this.tx(p.x), py = this.ty(p.y);
+      c.beginPath(); c.arc(px, py, p.r, 0, TAU); c.fillStyle = '#3A2E3F'; c.fill();
+      const ig = c.createRadialGradient(px, py, p.r * 0.35, px, py, p.r);
+      ig.addColorStop(0, 'rgba(0,0,0,0)'); ig.addColorStop(1, 'rgba(0,0,0,0.5)');
+      c.beginPath(); c.arc(px, py, p.r, 0, TAU); c.fillStyle = ig; c.fill();
+      c.strokeStyle = 'rgba(185,127,69,0.85)'; c.lineWidth = 3;
+      c.beginPath(); c.arc(px, py, p.r + 1.5, 0, TAU); c.stroke();
+    }
+  }
+  drawBall(x, y, id) {
+    const ctx = this.ctx;
+    const X = this.tx(x), Y = this.ty(y), R = CFG.BALL_R;
+    // soft drop shadow falling south-east (light from upper-left)
+    ctx.save();
+    ctx.translate(X + R * 0.26, Y + R * 0.26);
+    ctx.scale(1, 0.72);
+    const bsh = ctx.createRadialGradient(0, 0, R * 0.15, 0, 0, R * 1.2);
+    bsh.addColorStop(0, 'rgba(70,50,80,0.20)');
+    bsh.addColorStop(0.65, 'rgba(70,50,80,0.12)');
+    bsh.addColorStop(1, 'rgba(70,50,80,0)');
+    ctx.fillStyle = bsh;
+    ctx.beginPath(); ctx.arc(0, 0, R * 1.2, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(X, Y, R, 0, TAU); ctx.clip();
+    ctx.fillStyle = Renderer.baseColor(id);
+    ctx.fillRect(X - R, Y - R, 2 * R, 2 * R);
+    if (id > 8) {
+      ctx.fillStyle = CFG.BALL_COLORS[id];
+      ctx.fillRect(X - R, Y - R * 0.55, 2 * R, R * 1.1);
+    }
+    const gl = ctx.createRadialGradient(X - R * 0.4, Y - R * 0.5, 1, X - R * 0.4, Y - R * 0.5, R * 1.3);
+    gl.addColorStop(0, 'rgba(255,255,255,0.55)');
+    gl.addColorStop(0.4, 'rgba(255,255,255,0.12)');
+    gl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gl; ctx.fillRect(X - R, Y - R, 2 * R, 2 * R);
+    ctx.restore();
+    if (id >= 1) {
+      ctx.beginPath(); ctx.arc(X, Y, R * 0.52, 0, TAU); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+      ctx.fillStyle = '#5A4A6A';
+      ctx.font = 'bold ' + Math.round(R * 0.78) + 'px "Segoe UI",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(id, X, Y + 1);
+    }
+  }
+  drawArrow(x, y, dx, dy, color) {
+    const ctx = this.ctx;
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y + dy); ctx.stroke();
+    const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    const hx = x + dx, hy = y + dy;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(hx - ux * 14 - uy * 7, hy - uy * 14 + ux * 7);
+    ctx.lineTo(hx - ux * 14 + uy * 7, hy - uy * 14 - ux * 7);
+    ctx.closePath(); ctx.fill();
+  }
+  renderAim() {
+    const ctx = this.ctx;
+    const state = this.app.game.state;
+    const c = state.balls[0];
+    const a = state.aim.angle, dx = Math.cos(a), dy = Math.sin(a);
+    const X = this.tx(c.x), Y = this.ty(c.y), R = CFG.BALL_R;
+    let bestT = Infinity, hitB = null;
+    for (const b of state.balls) {
+      if (!b.inPlay || b.id === 0) continue;
+      const ox = this.tx(b.x) - X, oy = this.ty(b.y) - Y;
+      const proj = ox * dx + oy * dy;
+      if (proj <= 0) continue;
+      const d2 = ox * ox + oy * oy - proj * proj;
+      const minD2 = (2 * R) * (2 * R);
+      if (d2 > minD2) continue;
+      const t = proj - Math.sqrt(minD2 - d2);
+      if (t < bestT) { bestT = t; hitB = b; }
+    }
+    const len = hitB ? bestT : 700;
+    const gx = X + dx * len, gy = Y + dy * len;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.setLineDash([10, 8]);
+    ctx.beginPath(); ctx.moveTo(X + dx * (R + 4), Y + dy * (R + 4)); ctx.lineTo(gx, gy); ctx.stroke();
+    ctx.setLineDash([]);
+    if (hitB) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(gx, gy, R, 0, TAU); ctx.stroke();
+      const ox2 = this.tx(hitB.x) - gx, oy2 = this.ty(hitB.y) - gy;
+      const ol = Math.hypot(ox2, oy2) || 1;
+      const ux = ox2 / ol, uy = oy2 / ol;
+      this.drawArrow(gx + ux * (R + 6), gy + uy * (R + 6), ux * 120, uy * 120, 'rgba(255,217,61,0.95)');
+      const txx = dx - (dx * ux + dy * uy) * ux;
+      const tyy = dy - (dx * ux + dy * uy) * uy;
+      const tl = Math.hypot(txx, tyy);
+      if (tl > 0.05) this.drawArrow(gx + txx / tl * R, gy + tyy / tl * R, txx / tl * 60, tyy / tl * 60, 'rgba(110,198,255,0.9)');
+    }
+    ctx.restore();
+    // cue stick
+    const pull = R + CFG.TIP_GAP + state.aim.power * CFG.PULLBACK;
+    const bx = X - dx * pull, by = Y - dy * pull;
+    const ex = bx - dx * CFG.CUE_LEN, ey = by - dy * CFG.CUE_LEN;
+    ctx.save();
+    ctx.lineCap = 'round';
+    const grad = ctx.createLinearGradient(bx, by, ex, ey);
+    grad.addColorStop(0, '#7EC8E3'); grad.addColorStop(0.03, '#F5D7A0');
+    grad.addColorStop(0.55, '#DFB57C'); grad.addColorStop(1, '#8B5A3C');
+    ctx.strokeStyle = grad; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = '#8B5A3C'; ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.moveTo(bx - dx * (CFG.CUE_LEN - 190), by - dy * (CFG.CUE_LEN - 190));
+    ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.restore();
+  }
+  pill(x, y, text, color) {
+    const ctx = this.ctx;
+    ctx.font = 'bold 16px "Segoe UI",sans-serif';
+    const w = ctx.measureText(text).width + 28;
+    rr(ctx, x - w / 2, y - 14, w, 28, 14);
+    ctx.globalAlpha = 0.9; ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 1);
+  }
+  drawMini(X, Y, r, id) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(X, Y, r, 0, TAU); ctx.clip();
+    ctx.fillStyle = Renderer.baseColor(id);
+    ctx.fillRect(X - r, Y - r, 2 * r, 2 * r);
+    if (id > 8) { ctx.fillStyle = CFG.BALL_COLORS[id]; ctx.fillRect(X - r, Y - r * 0.5, 2 * r, r); }
+    ctx.restore();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(45,35,55,0.85)';
+    ctx.beginPath(); ctx.arc(X, Y, r - 0.5, 0, TAU); ctx.stroke();
+    if (id >= 1) {
+      ctx.beginPath(); ctx.arc(X, Y, r * 0.62, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.fillStyle = '#5A4A6A';
+      ctx.font = 'bold ' + Math.round(r * 0.85) + 'px "Segoe UI",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(id, X, Y + 0.5);
+    }
+  }
+  drawPlayerCard(x, y, p, idx) {
+    const ctx = this.ctx;
+    const state = this.app.game.state;
+    const w = 360, h = 78;
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,74,106,.18)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+    rr(ctx, x, y, w, h, 20); ctx.fillStyle = '#FFFFFFCC'; ctx.fill();
+    ctx.restore();
+    if (state.current === idx && state.phase !== 'gameOver') {
+      rr(ctx, x, y, w, h, 20); ctx.strokeStyle = '#FF8FAB'; ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#5A4A6A'; ctx.font = 'bold 20px "Segoe UI",sans-serif';
+    ctx.fillText(p.name, x + 18, y + 26);
+    let label = 'OPEN', chipCol = '#D9A066';
+    if (state.mode === '8ball') {
+      if (p.group === 'solid') { label = 'SOLID'; chipCol = '#FF8FAB'; }
+      else if (p.group === 'stripe') { label = 'STRIPE'; chipCol = '#6EC6FF'; }
+    } else {
+      const lo = Physics.lowestBall(state);
+      if (lo > 0) { label = 'LOW: ' + lo; chipCol = CFG.BALL_COLORS[lo]; }
+    }
+    ctx.font = 'bold 16px "Segoe UI",sans-serif';
+    const pw = ctx.measureText(label).width + 28;
+    this.pill(x + w - 18 - pw / 2, y + 26, label, chipCol);
+    let ids;
+    if (state.mode === '9ball') ids = state.balls.filter(b => b.inPlay && b.id >= 1 && b.id <= 9).map(b => b.id);
+    else if (p.group) ids = state.balls.filter(b => b.inPlay && b.id >= 1 && b.id !== 8 &&
+      (p.group === 'solid' ? b.id < 8 : b.id > 8)).map(b => b.id);
+    else ids = state.balls.filter(b => b.inPlay && b.id >= 1 && b.id !== 8).map(b => b.id);
+    ids.sort((a, b) => a - b);
+    const gap = ids.length > 1 ? Math.min(26, (w - 40) / (ids.length - 1)) : 0;
+    const rad = Math.min(11, gap / 2 - 1.5);
+    const startX = x + w / 2 - (ids.length - 1) * gap / 2;
+    ids.forEach((id, i) => this.drawMini(startX + i * gap, y + 54, Math.max(rad, 4), id));
+  }
+  renderHUD() {
+    const ctx = this.ctx;
+    const state = this.app.game.state;
+    const input = this.app.input;
+    this.drawPlayerCard(28, 20, state.players[0], 0);
+    this.drawPlayerCard(CFG.W - 388, 20, state.players[1], 1);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (state.phase === 'ballsInHand') {
+      const k = this.viewBH / CFG.H;                                  // scene px -> device px (viewBH >= 1)
+      const off = Math.round(Math.sin(performance.now() / 250) * 3 * k) / k;
+      const lwOff = Math.round(Math.sin(performance.now() / 250) * 2 * k) / k;
+      ctx.save();
+      ctx.shadowColor = 'rgba(90,74,106,.25)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6;
+      rr(ctx, 560, 50 + off, 800, 68, 34);
+      ctx.fillStyle = '#FFD93D'; ctx.fill();
+      ctx.restore();
+      rr(ctx, 560, 50 + off, 800, 68, 34);
+      ctx.strokeStyle = '#FF8FAB'; ctx.lineWidth = 4 + lwOff; ctx.stroke();
+      ctx.fillStyle = '#5A4A6A'; ctx.font = 'bold 30px "Segoe UI",sans-serif';
+      ctx.fillText('BALL IN HAND - ' + state.players[state.current].name + "'s ball", 960, 74 + off);
+      let line2 = state.ballsInHand.behind
+        ? 'Click to place the cue ball behind the head string'
+        : 'Click to place the cue ball anywhere on the table';
+      if (state.message) line2 += '   \u2022   ' + state.message;
+      ctx.fillStyle = '#6A5A7A'; ctx.font = 'bold 18px "Segoe UI",sans-serif';
+      ctx.fillText(line2, 960, 100 + off);
+    } else {
+      ctx.fillStyle = '#5A4A6A'; ctx.font = '800 34px "Baloo 2","Segoe UI",sans-serif';
+      ctx.fillText(state.mode === '8ball' ? '8-BALL' : '9-BALL', 960, 44);
+      if (state.mode === '8ball' && state.tableOpen) this.pill(960, 78, 'OPEN TABLE', '#A78BFA');
+    }
+    if (state.shotClock.on && state.phase !== 'gameOver') {
+      const rem = Math.max(0, state.shotClock.remain);
+      ctx.beginPath(); ctx.arc(1400, 55, 28, 0, TAU);
+      ctx.strokeStyle = 'rgba(90,74,106,0.15)'; ctx.lineWidth = 7; ctx.stroke();
+      ctx.beginPath(); ctx.arc(1400, 55, 28, -Math.PI / 2, -Math.PI / 2 + TAU * (rem / CFG.SHOT_CLOCK));
+      ctx.strokeStyle = rem < 10 ? '#FF8FAB' : '#7CCB97'; ctx.lineWidth = 7; ctx.stroke();
+      ctx.fillStyle = '#5A4A6A'; ctx.font = 'bold 20px "Segoe UI",sans-serif';
+      ctx.fillText(String(Math.ceil(rem)), 1400, 56);
+    }
+    if (state.msgT > 0 && state.message) {
+      ctx.font = 'bold 26px "Segoe UI",sans-serif';
+      const w = ctx.measureText(state.message).width + 48;
+      rr(ctx, 960 - w / 2, 122, w, 46, 23);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+      ctx.fillStyle = '#5A4A6A'; ctx.fillText(state.message, 960, 146);
+    }
+    if (input.fineAim) this.pill(960, 968, 'FINE AIM (HOLD SHIFT OR RIGHT-CLICK)', '#A78BFA');
+    // power gauge
+    const pw = state.aim.power;
+    rr(ctx, 660, 1000, 600, 20, 10); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+    if (pw > 0.005) { rr(ctx, 660, 1000, Math.max(20, 600 * pw), 20, 10); ctx.fillStyle = '#FF8FAB'; ctx.fill(); }
+    ctx.fillStyle = '#5A4A6A'; ctx.font = 'bold 16px "Segoe UI",sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('POWER ' + Math.round(pw * 100) + '%', 1272, 1011);
+    if (state.phase !== 'gameOver') {
+      ctx.fillStyle = '#9A8AA8'; ctx.font = '16px "Segoe UI",sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('ESC to quit to menu', 960, 1048);
+    }
+  }
+  drawUIBtn(b) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,74,106,.15)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+    rr(ctx, b.x, b.y, b.w, b.h, 14);
+    ctx.fillStyle = b.sel ? '#FF8FAB' : '#FFFFFFCC';
+    ctx.fill();
+    ctx.restore();
+    if (!b.sel) { rr(ctx, b.x, b.y, b.w, b.h, 14); ctx.strokeStyle = '#E8B4C8'; ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.fillStyle = b.sel ? '#fff' : '#5A4A6A';
+    ctx.font = '700 ' + (b.fs || 22) + 'px "Baloo 2","Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2 + 1);
+  }
+  // Menu-screen button: register in uiBtns (for click hit-testing) and draw it.
+  menuBtn(label, cx, cy, w, h, sel, cb, fs) {
+    const b = { x: cx - w / 2, y: cy - h / 2, w, h, label, sel: !!sel, cb, fs: fs || 22 };
+    this.uiBtns.push(b); this.drawUIBtn(b);
+  }
+  renderMenu() {
+    const ctx = this.ctx;
+    const settings = this.app.settings;
+    const game = this.app.game;
+    const sound = this.app.sound;
+    this.uiBtns = [];
+    ctx.fillStyle = 'rgba(255,233,243,0.92)'; ctx.fillRect(0, 0, CFG.W, CFG.H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#5A4A6A'; ctx.font = '800 108px "Baloo 2","Segoe UI",sans-serif';
+    ctx.fillText('Pastel Pool', 960, 210);
+    ctx.font = '700 22px "Baloo 2","Segoe UI",sans-serif'; ctx.fillStyle = '#9A8AA8';
+    ctx.fillText('MODE', 960, 280);
+    this.menuBtn('8-BALL', 850, 330, 190, 56, settings.mode === '8ball', () => { settings.mode = '8ball'; });
+    this.menuBtn('9-BALL', 1070, 330, 190, 56, settings.mode === '9ball', () => { settings.mode = '9ball'; });
+    ctx.fillText('PLAYERS', 960, 415);
+    this.menuBtn('1P VS CPU', 640, 465, 300, 56, settings.vsCPU, () => { settings.vsCPU = true; });
+    this.menuBtn('2 PLAYERS (LOCAL)', 960, 465, 300, 56, !settings.vsCPU, () => { settings.vsCPU = false; });
+    this.menuBtn('2 PLAYERS (NETWORK)', 1280, 465, 300, 56, false, () => { sound.click(); this.app.net.showPanel(); });
+    const lowY = settings.vsCPU ? 695 : 620;
+    const insY = lowY + 90, startY = lowY + 180;  // players row now holds the NETWORK button; no separate MP slot
+    if (settings.vsCPU) {
+      ctx.fillText('CPU SKILL', 960, 550);
+      this.menuBtn('EASY', 740, 600, 180, 50, settings.aiLevel === 'easy', () => { settings.aiLevel = 'easy'; });
+      this.menuBtn('MEDIUM', 960, 600, 180, 50, settings.aiLevel === 'medium', () => { settings.aiLevel = 'medium'; });
+      this.menuBtn('HARD', 1180, 600, 180, 50, settings.aiLevel === 'hard', () => { settings.aiLevel = 'hard'; });
+    }
+    this.menuBtn('SHOT CLOCK: ' + (settings.shotClockOn ? 'ON' : 'OFF'), 960, lowY, 240, 50, settings.shotClockOn, () => { settings.shotClockOn = !settings.shotClockOn; });
+    this.menuBtn('INSTRUCTIONS', 960, insY, 300, 56, false, () => { sound.click(); game.menuScreen = 'instructions'; });
+    this.menuBtn('START', 960, startY, 300, 80, false, () => { sound.click(); game.applyCommand({ type: 'start' }); }, 34);
+  }
+  renderInstructions() {
+    const ctx = this.ctx;
+    const game = this.app.game;
+    const sound = this.app.sound;
+    this.uiBtns = [];
+    ctx.fillStyle = 'rgba(255,233,243,0.92)'; ctx.fillRect(0, 0, CFG.W, CFG.H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,74,106,.2)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+    rr(ctx, 560, 140, 800, 770, 28);
+    ctx.fillStyle = '#FFFFFF'; ctx.fill();
+    ctx.restore();
+    rr(ctx, 560, 140, 800, 770, 28); ctx.strokeStyle = '#FF8FAB'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.fillStyle = '#5A4A6A'; ctx.font = '800 54px "Baloo 2","Segoe UI",sans-serif';
+    ctx.fillText('HOW TO PLAY', 960, 200);
+    const H = (text, y) => { ctx.fillStyle = '#FF8FAB'; ctx.font = '700 24px "Baloo 2","Segoe UI",sans-serif'; ctx.fillText(text, 960, y); };
+    const L = (text, y) => { ctx.fillStyle = '#6A5A7A'; ctx.font = '20px "Segoe UI",sans-serif'; ctx.fillText(text, 960, y); };
+    H('GOAL', 268);
+    L('8-BALL - clear your group of seven, then pot the 8-ball.', 304);
+    L('9-BALL - always strike the lowest-numbered ball first; pot the 9 to win.', 332);
+    H('AIMING', 436);
+    L('Move the mouse to aim - the dashed line and ghost ball show the cue\'s path.', 464);
+    L('Hold SHIFT or the RIGHT MOUSE BUTTON to switch to', 492);
+    L('slow, precise fine-aiming for tricky shots.', 520);
+    H('SHOOTING', 624);
+    L('Hold the LEFT MOUSE BUTTON to charge - the gauge sweeps up, then back down.', 652);
+    L('Release to shoot. A quick tap cancels the charge.', 680);
+    H('BALL IN HAND', 784);
+    L('After a foul, move the mouse to place the cue ball and click to drop it.', 812);
+    L('Green ring = legal spot, red ring = not legal.', 840);
+    L('Some fouls (e.g. scratching on the 8-ball break) limit you to behind the head string.', 868);
+    this.menuBtn('BACK', 960, 970, 220, 56, false, () => { sound.click(); game.menuScreen = 'main'; }, 24);
+  }
+  renderGameOver() {
+    const ctx = this.ctx;
+    const state = this.app.game.state;
+    const game = this.app.game;
+    const sound = this.app.sound;
+    ctx.fillStyle = 'rgba(255,233,243,0.85)'; ctx.fillRect(0, 0, CFG.W, CFG.H);
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,74,106,.2)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+    rr(ctx, 560, 370, 800, 250, 28);
+    ctx.fillStyle = '#FFFFFF'; ctx.fill();
+    ctx.restore();
+    rr(ctx, 560, 370, 800, 250, 28); ctx.strokeStyle = '#FF8FAB'; ctx.lineWidth = 4; ctx.stroke();
+    const w = state.winner;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#5A4A6A'; ctx.font = '800 56px "Baloo 2","Segoe UI",sans-serif';
+    ctx.fillText((w >= 0 ? state.players[w].name : '') + ' WINS!', 960, 455);
+    ctx.font = '26px "Segoe UI",sans-serif'; ctx.fillStyle = '#9A8AA8';
+    ctx.fillText(state.winReason, 960, 515);
+    // Multiplayer routing: the client REQUESTS rematch/menu; the host
+    // (authoritative) applies it and syncs via snapshots. Singleplayer unchanged.
+    this.menuBtn('REMATCH', 840, 700, 220, 56, false, () => {
+      sound.click();
+      if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'rematch' });
+      else game.applyCommand({ type: 'rematch' });
+    });
+    this.menuBtn('MENU', 1080, 700, 220, 56, false, () => {
+      sound.click();
+      if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'menu' });
+      else game.applyCommand({ type: 'menu' });
+    });
+  }
+  // RASTER STABILITY BLIT — the jitter fix. Why 1x1: still dirties the ~256px
+  // Chromium raster tile the old 640x118 rect did (the late-dirty is the cure),
+  // at 1px cost. Why the spot (12, CFG.H-12): center of the 12px border-radius
+  // arc — a literal-corner pixel is clipped by the CSS radius and never
+  // composited. Why late: the opaque paint must be LAST-DIRTY of the tile
+  // region, at the END of render(), after all overlays/HUD. Why pixel-identical:
+  // source == dest rect, uniform integer scale transform; zero-alpha paints
+  // get optimized away and don't count; the 1x1 overlay-repair fills below
+  // tint it over menu/gameOver dim overlays. Regression: if the jitter
+  // returns, restore a LARGER late blit — the 640x118 rect at (16, CFG.H-138)
+  // cured it.
+  drawStabilityBlit() {
+    const ctx = this.ctx;
+    ctx.drawImage(this.tableCv, 12, CFG.H - 12, 1, 1, 12, CFG.H - 12, 1, 1);
+    // Overlay repair: same 1x1, same logic — the blit paints LATE, over the
+    // dim overlays, so tint this pixel with the overlay's own color. It sits
+    // on a table-identical pixel, so the tint is pixel-identical to
+    // surroundings — no chomp.
+    const state = this.app.game.state;
+    if (!state) { ctx.fillStyle = 'rgba(255,233,243,0.92)'; ctx.fillRect(12, CFG.H - 12, 1, 1); }
+    else if (state.phase === 'gameOver') { ctx.fillStyle = 'rgba(255,233,243,0.85)'; ctx.fillRect(12, CFG.H - 12, 1, 1); }
+  }
+  // Per-frame raster stability flush: the getBoundingClientRect() sync
+  // flush keeps the per-frame-updated canvas texture raster aligned (a
+  // browser/GPU compositor quirk re-rasterizes it in ~256px tiles with
+  // 1px rounding drift). The blit's LATE paint is required (must be
+  // last-dirty of its tile region; zero-alpha paints don't count).
+  stabilityBlitFrame() {
+    this.cv.getBoundingClientRect();  // sync flush; no value needed
+    this.drawStabilityBlit();
+  }
+  render() {
+    const ctx = this.ctx;
+    const game = this.app.game;
+    const input = this.app.input;
+    const state = game.state;
+    ctx.drawImage(this.tableCv, 0, 0);
+    this.uiBtns = [];
+    if (!state) { if (game.menuScreen === 'instructions') this.renderInstructions(); else this.renderMenu(); }
+    else {
+      const cueIsCursor = state.phase === 'ballsInHand' && !state.players[state.current].isCPU;
+      for (const b of state.balls) if (b.inPlay && !(cueIsCursor && b.id === 0)) this.drawBall(b.x, b.y, b.id);
+      if (state.phase === 'ballsInHand' && !state.players[state.current].isCPU) {
+        const gx = input.mouse.x - T_OX, gy = input.mouse.y - T_OY;
+        const valid = game.canPlace(gx, gy);
+        this.drawBall(gx, gy, 0);  // full-opacity cue ball as the cursor
+        ctx.lineWidth = 3; ctx.strokeStyle = valid ? 'rgba(124,227,163,0.95)' : 'rgba(232,106,106,0.95)';
+        ctx.beginPath(); ctx.arc(input.mouse.x, input.mouse.y, CFG.BALL_R + 7, 0, TAU); ctx.stroke();
+        if (state.ballsInHand.behind) {
+          ctx.fillStyle = 'rgba(255,255,255,0.10)';
+          ctx.fillRect(this.tx(0), this.ty(0), this.tx(CFG.HEAD_STRING) - this.tx(0), CFG.TABLE_H);
+          ctx.strokeStyle = 'rgba(124,227,163,0.6)'; ctx.lineWidth = 3; ctx.setLineDash([12, 10]);
+          ctx.beginPath(); ctx.moveTo(this.tx(CFG.HEAD_STRING), this.ty(0)); ctx.lineTo(this.tx(CFG.HEAD_STRING), this.ty(CFG.TABLE_H)); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+      if (game.isAimPhase() && state.balls[0].inPlay) this.renderAim();
+      this.renderHUD();
+      if (state.phase === 'gameOver') this.renderGameOver();
+    }
+    this.stabilityBlitFrame();  // late, pixel-identical no-op blit — keeps the Chromium raster tile stable
+  }
+  fit() {
+    // Element stays at integer device px with an integer device-px offset; the
+    // backing store is W*scale x H*scale and the compositor does the final
+    // (stable) scale to the CSS size — the same code path as an <img>.
+    const dpr = window.devicePixelRatio || 1;
+    const s = Math.min(window.innerWidth / CFG.W, window.innerHeight / CFG.H);
+    const bw = Math.max(2, Math.round(CFG.W * s * dpr));   // device px, integer
+    const bh = Math.max(2, Math.round(CFG.H * s * dpr));
+    const scale = (Number.isInteger(dpr) && dpr > 0) ? dpr : 1;
+    if (scale !== this.bsScale) {
+      this.bsScale = scale;
+      this.cv.width = CFG.W * scale; this.cv.height = CFG.H * scale;
+      this.ctx.setTransform(scale, 0, 0, scale, 0, 0);  // game px -> backing px, integer (width assignment resets context state, so set immediately after)
+    }
+    this.cv.style.width  = (bw / dpr) + 'px';
+    this.cv.style.height = (bh / dpr) + 'px';
+    this.cv.style.left = (Math.round((window.innerWidth * dpr - bw) / 2) / dpr) + 'px';
+    this.cv.style.top  = (Math.round((window.innerHeight * dpr - bh) / 2) / dpr) + 'px';
+    this.viewBH = bh;
+  }
+}
+
+/* ============================ Input =============================== */
+class Input {
+  constructor(app) {
+    this.app = app;
+    this.mouse = { x: 960, y: 540, charging: false, chargeT: 0 };
+    this.heldKeys = new Set();
+    this.fineAim = null;   // { baseAngle, baseRaw } while Shift or RMB held (mouse aim at FINE_AIM sensitivity)
+    this.shiftHeld = false;
+    this.rmbHeld = false;  // independent fine-aim hold flags
+    const cv = app.renderer.cv;
+    cv.addEventListener('mousemove', e => this.onMove(e));
+    cv.addEventListener('mousedown', e => this.onDown(e));
+    cv.addEventListener('contextmenu', e => e.preventDefault());  // RMB is fine-aim, not a menu
+    window.addEventListener('mouseup', e => this.onUp(e));
+    window.addEventListener('keydown', e => this.onKeyDown(e));
+    window.addEventListener('keyup', e => this.onKeyUp(e));
+  }
+  canvasPos(e) {
+    const r = this.app.renderer.cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (CFG.W / r.width),
+             y: (e.clientY - r.top) * (CFG.H / r.height) };
+  }
+  enterFineAim() {
+    // Multiplayer: fine aim is only ours to own on our own turn; on the
+    // opponent's turn the idle side just mirrors their live aim.
+    if (this.fineAim || !this.app.isMyTurn() || !this.app.game.isAimPhase()) return;
+    const c = this.app.game.state.balls[0];
+    this.fineAim = { baseAngle: this.app.game.state.aim.angle,
+                     baseRaw: Math.atan2(this.mouse.y - this.app.renderer.ty(c.y), this.mouse.x - this.app.renderer.tx(c.x)) };
+  }
+  exitFineAim() { if (!this.shiftHeld && !this.rmbHeld) this.fineAim = null; }
+  onMove(e) {
+    const game = this.app.game;
+    const renderer = this.app.renderer;
+    const p = this.canvasPos(e); this.mouse.x = p.x; this.mouse.y = p.y;
+    if (this.fineAim && !game.isAimPhase()) this.fineAim = null;
+    if (!game.state) return;
+    if (game.isAimPhase()) {
+      // Multiplayer: the local mouse must never steer the cue on the
+      // opponent's turn — state.aim here is driven by the remote peer's
+      // input (host side) or host snapshots (client side).
+      if (!this.app.isMyTurn()) return;
+      const c = game.state.balls[0];
+      const dx0 = this.mouse.x - renderer.tx(c.x), dy0 = this.mouse.y - renderer.ty(c.y);
+      if (!this.fineAim && (this.shiftHeld || this.rmbHeld)) this.enterFineAim();  // re-anchor if a hold flag survived a phase change
+      if (this.fineAim) {
+        const raw = Math.atan2(dy0, dx0);
+        game.state.aim.angle = this.fineAim.baseAngle + normAng(raw - this.fineAim.baseRaw) * CFG.FINE_AIM;
+      } else if (dx0 * dx0 + dy0 * dy0 > 4) {
+        game.state.aim.angle = Math.atan2(dy0, dx0);
+      }
+    }
+  }
+  onDown(e) {
+    const game = this.app.game;
+    this.app.sound.ensure();
+    const p = this.canvasPos(e); this.mouse.x = p.x; this.mouse.y = p.y;
+    if (e.button === 2) { this.rmbHeld = true; this.enterFineAim(); return; }  // RMB: fine aim only (never charges, never places, never clicks buttons)
+    if (e.button !== 0) return;
+    for (const b of this.app.renderer.uiBtns)
+      if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) { this.app.sound.click(); b.cb(); return; }
+    if (!game.state) return;
+    if (game.state.phase === 'ballsInHand') {
+      if (this.app.isMyTurn()) {  // multiplayer: placing on the opponent's turn is meaningless — ignore
+        // Thin client: request placement from the authoritative host.
+        if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'placeCue', x: this.mouse.x - T_OX, y: this.mouse.y - T_OY });
+        else game.applyCommand({ type: 'placeCue', x: this.mouse.x - T_OX, y: this.mouse.y - T_OY });
+      }
+      return;
+    }
+    if (this.app.isMyTurn() && game.isAimPhase()) {  // charging is only ever ours
+      this.mouse.charging = true; this.mouse.chargeT = 0; game.state.aim.power = 0;
+    }
+  }
+  onUp(e) {
+    const game = this.app.game;
+    if (e.button === 2) { this.rmbHeld = false; this.exitFineAim(); return; }
+    if (this.mouse.charging) {
+      this.mouse.charging = false;
+      if (this.app.isMyTurn() && game.isAimPhase()) {
+        if (game.state.aim.power < CFG.MIN_POWER) game.state.aim.power = 0;  // quick tap = cancel, no shot
+        else if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'shoot' });  // thin client asks the host
+        else game.applyCommand({ type: 'shoot' });
+      }
+    }
+  }
+  onKeyDown(e) {
+    const k = e.key;
+    // While chat is open NO game key does anything (no shoot, no quit, no place).
+    // Must come before preventDefault so typing a space in the input works.
+    if (this.app.chat.open) {
+      if (k === 'Enter') this.app.chat.submit();
+      else if (k === 'Escape') this.app.chat.close();
+      return;
+    }
+    if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) e.preventDefault();
+    if (e.repeat) return;
+    this.app.sound.ensure();
+    const game = this.app.game;
+    if (k === 'Escape') {
+      // Multiplayer: tell the peer so both sides drop to the menu together.
+      const net = this.app.net;
+      if (game.state && net.ready()) net.send({ type: 'cmd', kind: 'menu' });
+      if (!game.state && game.menuScreen !== 'main') game.menuScreen = 'main'; else game.state = null;
+      return;
+    }
+    if (k === 'Shift') { this.shiftHeld = true; this.enterFineAim(); return; }
+    if (!game.state) return;
+    // Multiplayer: keyboard game actions (place / rotate / power / shoot)
+    // only count on our own turn — same gate as the mouse path.
+    const human = this.app.isMyTurn();
+    // In a live multiplayer game Enter opens chat INSTEAD of placing/shooting.
+    const mpLive = this.app.net.ready();
+    if (k === 'Enter' && mpLive && game.state.phase !== 'gameOver') { this.app.chat.openChat(); return; }
+    if (game.state.phase === 'ballsInHand' && human && (k === 'Enter' || k === ' ')) {
+      if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'placeCue', x: this.mouse.x - T_OX, y: this.mouse.y - T_OY });
+      else game.applyCommand({ type: 'placeCue', x: this.mouse.x - T_OX, y: this.mouse.y - T_OY });
+      return;
+    }
+    if (human && game.isAimPhase()) {
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') { game.state.aim.angle -= 0.1 * Math.PI / 180; this.heldKeys.add('L'); }
+      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { game.state.aim.angle += 0.1 * Math.PI / 180; this.heldKeys.add('R'); }
+      else if (k === 'ArrowUp' || k === 'w' || k === 'W') { game.state.aim.power = Math.min(1, game.state.aim.power + 0.05); }
+      else if (k === 'ArrowDown' || k === 's' || k === 'S') { game.state.aim.power = Math.max(CFG.MIN_POWER, game.state.aim.power - 0.05); }
+      else if (k === 'Enter' || k === ' ') {  // Enter only reaches here in singleplayer / 2P local (mpLive guard consumed it otherwise)
+        if (this.app.net.role === 'client') this.app.net.send({ type: 'cmd', kind: 'shoot' });
+        else game.applyCommand({ type: 'shoot' });
+      }
+    }
+  }
+  onKeyUp(e) {
+    const k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') this.heldKeys.delete('L');
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') this.heldKeys.delete('R');
+    if (k === 'Shift') { this.shiftHeld = false; this.exitFineAim(); }
+  }
+}
+
+/* ============================ Sound =============================== */
+class Sound {
+  constructor() { this.ctx = null; this.lastHitT = 0; }
+  ensure() {
+    if (!this.ctx) {
+      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (err) { this.ctx = null; }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  env(dur, vol) {
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+    g.connect(this.ctx.destination);
+    return g;
+  }
+  tone(freq, dur, type, vol, slideTo) {
+    if (!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + dur);
+    o.connect(this.env(dur, vol));
+    o.start(); o.stop(this.ctx.currentTime + dur);
+  }
+  noise(dur, vol) {
+    if (!this.ctx) return;
+    const n = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
+    const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    src.connect(this.env(dur, vol)); src.start();
+  }
+  cueHit(p) { this.noise(0.06, 0.25 * p + 0.1); this.tone(150, 0.06, 'sine', 0.3); }
+  hit(intensity) {
+    const now = performance.now();
+    if (now - this.lastHitT < 40) return;
+    this.lastHitT = now;
+    this.tone(800, 0.035, 'triangle', Math.min(0.35, 0.05 + intensity * 0.35));
+  }
+  cushion() { this.tone(200, 0.05, 'sine', 0.2); }
+  pocket() { this.tone(600, 0.15, 'sine', 0.3, 200); }
+  click() { this.tone(600, 0.03, 'square', 0.12); }
+  win() {
+    if (!this.ctx) return;
+    [523, 659, 784, 1047].forEach((f, i) =>
+      setTimeout(() => this.tone(f, 0.25, 'triangle', 0.25), i * 130));
+  }
+}
+
+/* ====================== Multiplayer (P2P WebRTC) ===================
+   Two browsers on the LAN pair over a WebRTC data channel (manual
+   copy/paste signaling codes — no server).
+   The host is AUTHORITATIVE: it runs the real Game and ships throttled
+   state snapshots; the client is THIN — it renders the latest snapshot
+   and sends input/cmd/chat messages (it never ticks physics).
+   Protocol (JSON):
+     peer->peer     : input {charging, angle, power, mouse}   (client -> host, ~30 Hz)
+                      cmd {kind:'shoot'|'placeCue'|'rematch'|'ballmode'|'menu', x?, y?}
+                      chat {text}
+     host->client   : state {state, evts[], charging}  (full snapshot + frame events
+                      for sfx; charging = host's local charge flag so the client can
+                      free-run the host's power integration at render rate)
+   ================================================================ */
+class Net {
+  constructor(app) {
+    this.app = app;
+    this.pc = null;            // RTCPeerConnection
+    this.dc = null;            // P2P mode (RTCDataChannel)
+    this.p2pStage = null;      // P2P: 'offer' (host, awaiting answer) | 'answer' (joiner, awaiting offer)
+    this.role = null;          // 'host' | 'client' — set locally by p2pHost() / p2pAcceptOffer()
+    this.names = [];           // display names, index = peer slot
+    this.remoteCmds = [];      // queued client commands, drained by frame()
+    this.remoteAim = null;     // latest client aim, applied once per frame
+    // Input-shaped object the host ticks with while it's the remote
+    // player's turn (same shape as the local Input instance).
+    this.remoteInput = { mouse: { x: 960, y: 540, charging: false, chargeT: 0 }, heldKeys: new Set() };
+    // CLIENT-side mirror of the HOST's charge (inverse of remoteInput), driven by
+    // the snapshot's `charging` field so the client can free-run the host's power
+    // integration at render rate.
+    this.hostInput = { mouse: { x: 960, y: 540, charging: false, chargeT: 0 }, heldKeys: new Set() };
+    this.lastSnapT = 0; this.lastSnapPhase = null;  // snapshot throttle (33 ms / phase change)
+    this.lastInputT = 0;                            // client input pump throttle (~30 Hz)
+    // --- DOM wiring (multiplayer panel), once at construction ---
+    this.el = {
+      panel: document.getElementById('mpPanel'),
+      status: document.getElementById('mpStatus'),
+      p2pOfferBox: document.getElementById('p2pOfferBox'), p2pJoinBox: document.getElementById('p2pJoinBox'),
+      p2pOfferOut: document.getElementById('p2pOfferOut'), p2pAnswerIn: document.getElementById('p2pAnswerIn'),
+      p2pOfferIn: document.getElementById('p2pOfferIn'), p2pAnswerOut: document.getElementById('p2pAnswerOut'),
+      modeBtn: document.getElementById('modeBtn'),
+    };
+    document.getElementById('mpBackBtn').addEventListener('click', () => { app.sound.click(); this.disconnect(); });
+    // --- P2P (server-free WebRTC, manual copy/paste signaling) ---
+    document.getElementById('mpP2pHostBtn').addEventListener('click', () => this.p2pHost());
+    document.getElementById('mpP2pJoinBtn').addEventListener('click', () => this.p2pJoin());
+    document.getElementById('mpP2pCreateAnsBtn').addEventListener('click', () => this.p2pAcceptOffer(this.el.p2pOfferIn.value));
+    document.getElementById('p2pAnswerBtn').addEventListener('click', () => this.p2pAcceptAnswer(this.el.p2pAnswerIn.value));
+    document.getElementById('p2pOfferCopyBtn').addEventListener('click', () => this.copyTarea(this.el.p2pOfferOut));
+    document.getElementById('p2pAnswerCopyBtn').addEventListener('click', () => this.copyTarea(this.el.p2pAnswerOut));
+    document.getElementById('p2pOfferRegenBtn').addEventListener('click', () => { app.sound.click(); this.p2pReset(); this._p2pCreateOffer('Generating a fresh OFFER\u2026'); });
+    // Mid-game mode toggle: the host applies it DIRECTLY (authoritative; its
+    // dc.send only reaches the guest, never itself); the client sends the cmd
+    // and the host acts in onMessage. The button is a <body> child, so canvas
+    // input listeners never see it.
+    this.el.modeBtn.addEventListener('click', () => {
+      app.sound.click();
+      if (!this.role) return;
+      if (this.role === 'client') { this.send({ type: 'cmd', kind: 'ballmode' }); return; }
+      const s = app.game.state;
+      if (s) { app.settings.mode = s.mode === '8ball' ? '9ball' : '8ball'; app.game.applyCommand({ type: 'rematch' }); }
+    });
+  }
+  // --- The WebRTC RTCDataChannel is the only transport: it uses
+  //     readyState for OPEN and .send(string), so everything outside
+  //     wireDc()/disconnect() goes through these two helpers.
+  link() { return this.dc; }
+  // Some engines expose RTCDataChannel.readyState as the number 1 and others
+  // as the string "open" — accept both (a numeric-only check silently dead
+  // every send on the string engines).
+  _dcOpen(t) { return !!(t && (t.readyState === 1 || t.readyState === 'open')); }
+  ready() { return !!(this.role && this._dcOpen(this.link())); }
+
+  // --- Manual signaling codes: tagged base64 JSON {v:1, sdp}, 64-char lines
+  codeFor(tag, sdp) {
+    return tag + btoa(JSON.stringify({ v: 1, sdp })).replace(/(.{64})/g, '$1\n');
+  }
+  parseCode(text, expectTag) {
+    const tagLen = expectTag.length;
+    const t = String(text || '').trim();  // trim both ends (pastes often carry a leading newline)
+    if (!t.startsWith(expectTag)) throw new Error('Wrong code type - that does not look like an OFFER/ANSWER code');
+    const body = t.slice(tagLen).replace(/\s+/g, '');
+    let obj;
+    try { obj = JSON.parse(atob(body)); } catch (e) { throw new Error('Code is corrupted - copy it again, including every line'); }
+    const sdp = obj && obj.sdp;
+    if (typeof sdp !== 'string' || sdp.indexOf('v=0') < 0) throw new Error('Code is corrupted - copy it again, including every line');
+    return sdp;
+  }
+  copyTarea(ta) {
+    const done = () => this.setStatus('Copied \u2713');
+    const fail = () => this.setStatus('Select all (Ctrl+A) and copy manually');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done, fail);
+    } else {
+      ta.select();
+      if (document.execCommand && document.execCommand('copy')) done(); else fail();
+    }
+  }
+
+  // --- P2P (server-free WebRTC). The JSON protocol is carried over the
+  //     WebRTC data channel.
+  _p2pPC() {
+    // LAN-only by design: no STUN — host candidates connect two devices on the
+    // same network instantly and let iceGatheringState reach 'complete' in well
+    // under a second. (Cross-NAT play is not a supported scenario.)
+    return new RTCPeerConnection();
+  }
+  _p2pWaitGathering(pc) {
+    // Resolves with true when the 10 s fallback fired before gathering finished.
+    return new Promise(res => {
+      if (pc.iceGatheringState === 'complete') { res(false); return; }
+      let done = false;
+      const finish = (timedOut) => { if (done) return; done = true; pc.removeEventListener('icegatheringstatechange', finish); res(!!timedOut); };
+      pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') finish(false); });
+      setTimeout(() => finish(true), 10000);  // safety net: still emits a code, possibly without all candidates
+    });
+  }
+  // Honest status after the gathering fallback fires (or right after a normal
+  // completion is NOT called — normal completion shows the step-by-step text).
+  _p2pGatherStatus(timedOut, sdp) {
+    if (!timedOut) return;
+    const cand = (sdp.match(/a=candidate/g) || []).length;
+    if (cand === 0) this.setStatus('\u26A0 No network address found - this code will not connect. Check the network and press REGENERATE.');
+    else this.setStatus('\u26A0 Address gathering timed out - the code may be incomplete; if connecting fails, press REGENERATE.');
+  }
+  // Connection-state-driven status, attached to BOTH peers (host + guest).
+  _p2pOnState(pc) {
+    pc.onconnectionstatechange = () => {
+      if (this.pc !== pc) return;  // a newer connection replaced this one
+      const s = pc.connectionState;
+      if (s === 'connecting') this.setStatus('Connecting to opponent\u2026');
+      else if (s === 'connected') this.setStatus('Connected - pairing data channel\u2026');
+      else if (s === 'disconnected') this.setStatus('Connection interrupted - reconnecting\u2026');
+      else if (s === 'failed') {
+        if (this.role === 'host') this.setStatus('Connection failed - try REGENERATE, and make sure both devices are on the same network (a single shared NAT can still block the link)');
+        else this.setStatus('Connection failed - ask the host to REGENERATE, and make sure both devices are on the same network (a single shared NAT can still block the link)');
+      }
+      else if (s === 'closed') this.setStatus('Connection closed');
+    };
+  }
+  wireDc(dc) {
+    dc.onmessage = m => {
+      let msg; try { msg = JSON.parse(m.data); } catch (err) { return; }
+      msg.from = (this.role === 'host') ? 1 : 0;  // peer slot of the sender
+      this.onMessage(msg);
+    };
+    dc.onopen = () => {
+      if (this.dc !== dc) return;
+      try {
+        this.el.p2pOfferBox.style.display = 'none';
+        this.el.p2pJoinBox.style.display = 'none';
+        this.hidePanel();
+        if (this.role === 'host') {
+          this.setStatus('Connected - starting game\u2026');
+          if (!this.app.game.state) this.app.startNetGame();
+        } else {
+          this.setStatus('Connected - waiting for the host\u2026');  // host snapshots arrive immediately
+        }
+      } catch (err) { this.setStatus('Error: ' + err.message); }
+    };
+    dc.onclose = () => {
+      if (this.dc !== dc) return;  // a newer connection replaced this one
+      const wasHost = this.role === 'host';
+      const inGame = !!this.app.game.state;
+      this.p2pReset();
+      if (inGame) {
+        this.app.chat.addMsg('Server', 'Connection lost');
+        if (wasHost) this.app.game.setMessage('Opponent left - Esc for menu');
+      }
+      this.setStatus('Connection closed');
+    };
+  }
+  p2pReset() {
+    if (this.pc) { this.pc.onclose = null; this.pc.onconnectionstatechange = null; this.pc.oniceconnectionstatechange = null; try { this.pc.close(); } catch (err) {} }
+    this.pc = null; this.dc = null; this.p2pStage = null;
+    for (const id of ['p2pOfferOut', 'p2pAnswerIn', 'p2pOfferIn', 'p2pAnswerOut']) this.el[id].value = '';
+    this.el.p2pOfferBox.style.display = 'none';
+    this.el.p2pJoinBox.style.display = 'none';
+  }
+  p2pHost() {
+    this.app.sound.click();
+    this.disconnect();        // clears any old P2P state (also hides the panel)
+    this.showPanel();         // so bring the panel back for the code exchange
+    this._p2pCreateOffer();
+  }
+  // Creates a FRESH offer (pc + data channel + code). Called by p2pHost() and
+  // by REGENERATE — every call invalidates the previous code pair.
+  _p2pCreateOffer(status) {
+    this.role = 'host';
+    this.names = ['Player 1', 'Player 2'];
+    this.app.chat.myName = 'Player 1';
+    this.p2pStage = 'offer';
+    this.el.p2pOfferBox.style.display = 'block';
+    this.el.p2pJoinBox.style.display = 'none';
+    this.setStatus(status || 'Preparing OFFER\u2026');
+    const pc = this._p2pPC();
+    this.pc = pc;
+    this.dc = pc.createDataChannel('game');
+    this.wireDc(this.dc);
+    this._p2pOnState(pc);
+    pc.createOffer().then(o => pc.setLocalDescription(o))
+      .then(() => { this.setStatus('Gathering network addresses\u2026'); return this._p2pWaitGathering(pc); })
+      .then(timedOut => {
+        this.showOfferCode();
+        if (timedOut) this._p2pGatherStatus(true, pc.localDescription.sdp);
+        else this.setStatus('Step 1: send this OFFER code to your opponent (they press JOIN and paste it). Step 2: they will send you an ANSWER code - paste it below and press CONNECT WITH ANSWER.');
+      })
+      .catch(err => this.setStatus('Error: ' + err.message));
+  }
+  showOfferCode() {
+    this.el.p2pOfferOut.value = this.codeFor('PPPOOL-OFFER:', this.pc.localDescription.sdp);
+  }
+  p2pJoin() {
+    this.app.sound.click();
+    this.p2pReset();
+    this.p2pStage = 'answer';
+    this.el.p2pJoinBox.style.display = 'block';
+    this.el.p2pOfferBox.style.display = 'none';
+    this.setStatus('Paste the host\u2019s OFFER code');
+  }
+  p2pAcceptOffer(codeText) {
+    if (!this.p2pStage || this.p2pStage !== 'answer') { this.setStatus('Press JOIN first, then paste the OFFER code'); return; }
+    let sdp;
+    try { sdp = this.parseCode(codeText, 'PPPOOL-OFFER:'); }
+    catch (err) { this.setStatus(err.message); return; }
+    this.role = 'client';
+    this.names = ['Player 1', 'Player 2'];
+    this.app.chat.myName = 'Player 2';
+    this.p2pReset();  // clears the paste boxes after capture
+    this.p2pStage = 'answer';
+    this.el.p2pJoinBox.style.display = 'block';
+    this.setStatus('Preparing ANSWER\u2026');
+    const pc = this._p2pPC();
+    this.pc = pc;
+    // MUST be set before setRemoteDescription, and must keep this.dc pointing
+    // at the received channel so the wireDc guards (this.dc !== dc) don't bail.
+    pc.ondatachannel = e => { this.dc = e.channel; this.wireDc(e.channel); };
+    this._p2pOnState(pc);
+    pc.setRemoteDescription({ type: 'offer', sdp })
+      .then(() => pc.createAnswer())
+      .then(a => pc.setLocalDescription(a))
+      .then(() => { this.setStatus('Gathering network addresses\u2026'); return this._p2pWaitGathering(pc); })
+      .then(timedOut => {
+        this.el.p2pAnswerOut.value = this.codeFor('PPPOOL-ANSWER:', pc.localDescription.sdp);
+        if (timedOut) this._p2pGatherStatus(true, pc.localDescription.sdp);
+        else this.setStatus('Step 2: send this ANSWER code to the host - they paste it and press CONNECT. Waiting to connect\u2026');
+      })
+      .catch(err => this.setStatus('Error: ' + err.message));
+  }
+  p2pAcceptAnswer(answerText) {
+    if (!this.pc || this.p2pStage !== 'offer') { this.setStatus('Press HOST first and wait for the OFFER code'); return; }
+    let sdp;
+    try { sdp = this.parseCode(answerText, 'PPPOOL-ANSWER:'); }
+    catch (err) { this.setStatus(err.message); return; }
+    this.setStatus('Connecting to opponent\u2026');
+    this.pc.setRemoteDescription({ type: 'answer', sdp })
+      .then(() => { /* dc.onopen fires the game start */ })
+      .catch(err => this.setStatus('Error: ' + err.message));
+  }
+
+  onMessage(m) {
+    const app = this.app;
+    if (m.type === 'state') {
+      // CLIENT: adopt the host's exact state (plain object) and play its sfx.
+      const prev = app.game.state;
+      app.game.state = m.state;           // null = back to menu (host pressed Esc)
+      // Own-turn aim ownership: while THIS client is the active shooter the
+      // cue/aim line/ghost ball/gauge are driven locally by Input in real time;
+      // the host's copy of them lags one round trip, and overwriting with it
+      // made the aim UI jitter and the power gauge advance at snapshot cadence.
+      // Restored only mid-turn (prev was also our aim turn, same phase) so a
+      // turn hand-off still adopts the snapshot (opponent's-turn mirror is
+      // untouched), and balls/turn/scores/sfx always stay snapshot-driven.
+      if (this.role === 'client' && m.state && prev &&
+          prev.current === 1 && m.state.current === 1 &&
+          m.state.phase === prev.phase &&
+          (m.state.phase === 'aiming' || m.state.phase === 'breakAim')) {
+        m.state.aim.angle = prev.aim.angle;
+        m.state.aim.power = prev.aim.power;
+      }
+      // Adopt the host's charge flag so the client can free-run the host's power
+      // integration at render rate (see the hostCharging case in App.frame).
+      // On the false->true edge, align chargeT from the snapshot's power: the host
+      // is <=~33 ms into its charge, i.e. on the ping-pong rising branch where
+      // ping-pong(t) === t, so the snapshot's power IS the host's chargeT. A 0-reset
+      // would leave a fixed <=33 ms offset visible on the gauge.
+      if (this.role === 'client' && m.state) {
+        const was = this.hostInput.mouse.charging;
+        this.hostInput.mouse.charging = !!m.charging;
+        if (!was && m.charging) this.hostInput.mouse.chargeT = m.state.aim.power;
+      }
+      app.pumpEvents(m.evts || []);
+      return;
+    }
+    if (m.type === 'input') {
+      // HOST: remote player's aim + charge. chargeT is driven by the host's
+      // own tick while charging; reset it on the false->true edge.
+      const was = this.remoteInput.mouse.charging;
+      this.remoteInput.mouse.charging = !!m.charging;
+      if (!was && m.charging) this.remoteInput.mouse.chargeT = 0;
+      if (m.mouse) { this.remoteInput.mouse.x = m.mouse.x; this.remoteInput.mouse.y = m.mouse.y; }
+      this.remoteAim = { angle: m.angle, power: m.power };
+      return;
+    }
+    if (m.type === 'cmd') {
+      if (this.role === 'host') {
+        // Turn-independent commands apply immediately (authoritative host).
+        if (m.kind === 'rematch') { app.game.applyCommand({ type: 'rematch' }); return; }
+        if (m.kind === 'ballmode') {
+          // 8/9-ball switch mid-game: flip settings, full restart — the fresh
+          // rack + coin-flip break resyncs the thin client via the next
+          // snapshot (≤33 ms, immediate on phase change). Allowed any phase.
+          const s = app.game.state;
+          if (s) { app.settings.mode = s.mode === '8ball' ? '9ball' : '8ball'; app.game.applyCommand({ type: 'rematch' }); }
+          return;
+        }
+        if (m.kind === 'menu') {
+          app.game.applyCommand({ type: 'menu' });
+          this.send({ type: 'state', state: null, evts: [] });  // client back to menu too
+          return;
+        }
+      } else if (m.kind === 'menu') {
+        app.game.applyCommand({ type: 'menu' });  // host asked both to menu
+        return;
+      }
+      this.remoteCmds.push({ kind: m.kind, x: m.x, y: m.y });
+      return;
+    }
+    if (m.type === 'chat') {
+      app.chat.addMsg(this.names[m.from] || 'Player', m.text);
+      app.sound.click();
+      return;
+    }
+  }
+  // Called by App.frame (host, only while the remote player is the active one):
+  // drain queued commands and apply the latest remote aim, then the host
+  // tick below uses this.remoteInput so charge physics run on the host.
+  frame(game, dt) {
+    // Defensive turn gate: remote commands/aim may only ever act on the
+    // remote player's (slot 1) turn. Dropping the stale leftovers too, so a
+    // buggy or malicious client 'shoot'/'placeCue' can't leak into the next
+    // turn — Game's own isCPU guards can't catch it (both MP players are human).
+    if (!game.state || game.state.current !== 1) {
+      this.remoteCmds.length = 0;
+      this.remoteAim = null;
+      return;
+    }
+    for (const c of this.remoteCmds) {
+      if (c.kind === 'shoot') game.applyCommand({ type: 'shoot' });
+      else if (c.kind === 'placeCue') game.applyCommand({ type: 'placeCue', x: c.x, y: c.y });
+    }
+    this.remoteCmds.length = 0;
+    if (this.remoteAim && (game.isAimPhase() || game.state.phase === 'ballsInHand'))
+      game.applyCommand({ type: 'aim', angle: this.remoteAim.angle, power: this.remoteAim.power });
+    this.remoteAim = null;
+  }
+  // Host: throttled full-state snapshot (33 ms, or immediately on phase change).
+  // 30 Hz keeps free-run drift tiny and makes the idle side's mirrored aim
+  // feel live; the payload (~1.5 KB full state) is trivial on LAN.
+  snapshot(game, dt, charging) {
+    if (this.role !== 'host' || !this.link() || !game.state) return;
+    const st = game.state;
+    const now = performance.now();
+    if (now - this.lastSnapT < 33 && this.lastSnapPhase === st.phase) return;
+    this.lastSnapT = now; this.lastSnapPhase = st.phase;
+    this.send({ type: 'state', state: st, evts: game.events, charging: !!charging });
+  }
+  send(msg) {
+    const t = this.link();
+    if (this._dcOpen(t)) { try { t.send(JSON.stringify(msg)); } catch (err) { console.error('dc.send failed', err); } }
+  }
+  showPanel() {
+    this.el.panel.style.display = 'block';
+    this.setStatus('');
+  }
+  hidePanel() { this.el.panel.style.display = 'none'; }
+  setStatus(s) { this.el.status.textContent = s; }
+  disconnect() {
+    this.p2pReset();
+    this.role = null; this.names = [];
+    this.remoteCmds.length = 0; this.remoteAim = null;
+    this.remoteInput.mouse.charging = false; this.remoteInput.mouse.chargeT = 0;
+    this.hostInput.mouse.charging = false; this.hostInput.mouse.chargeT = 0;
+    this.lastSnapT = 0; this.lastSnapPhase = null;
+    this.hidePanel(); this.setStatus('');
+  }
+}
+
+/* ============================ In-game chat =========================
+   DOM overlay (chatLog = fading messages, chatBar = input). Keys are
+   handled in Input.onKeyDown while open (Enter = send, Escape = cancel).
+   Messages travel as {type:'chat',text} between the peers; the sender
+   echoes locally via addMsg. textContent only — no innerHTML for text.
+   ================================================================ */
+class Chat {
+  constructor(app) {
+    this.app = app;
+    this.open = false;
+    this.myName = 'Player';
+    this.log = document.getElementById('chatLog');
+    this.bar = document.getElementById('chatBar');
+    this.input = document.getElementById('chatInput');
+  }
+  openChat() {
+    const net = this.app.net;
+    if (!net.ready()) return;
+    this.open = true;
+    this.bar.style.display = 'block';
+    this.input.focus();
+  }
+  close() {
+    this.open = false;
+    this.bar.style.display = 'none';
+    if (document.activeElement === this.input) this.input.blur();
+  }
+  submit() {
+    const text = this.input.value.trim();
+    if (text) {
+      const net = this.app.net;
+      if (net.ready()) net.send({ type: 'chat', text });
+      this.addMsg(this.myName, text);  // local echo (the peer gets it via the data channel)
+    }
+    this.input.value = '';
+  }
+  addMsg(name, text) {
+    const row = document.createElement('div');
+    const b = document.createElement('b');
+    b.textContent = name + ': ';
+    row.appendChild(b);
+    row.appendChild(document.createTextNode(text));
+    this.log.appendChild(row);
+    while (this.log.children.length > 6) this.log.firstChild.remove();
+    setTimeout(() => { row.style.opacity = '.35'; }, 4000);  // fade after ~4 s (CSS transition 2 s)
+    setTimeout(() => row.remove(), 9000);
+  }
+}
+
+/* ============================ App / Bootstrap ===================== */
+class App {
+  constructor() {
+    this.settings = { mode: '8ball', vsCPU: true, aiLevel: 'medium', shotClockOn: true };
+    this.game = new Game(this.settings);
+    this.sound = new Sound();
+    this.renderer = new Renderer(this);
+    this.input = new Input(this);
+    this.chat = new Chat(this);
+    this.net = new Net(this);
+    this.last = performance.now();
+    this.lastCursor = null;
+    this.lastModeBtnKey = null;  // compare-and-write key for #modeBtn (display + label)
+    this.lastModeBtnX = null; this.lastModeBtnY = null;  // compare-and-write for #modeBtn position (canvas-anchored)
+    this.renderer.buildTable();
+    window.addEventListener('resize', () => this.renderer.fit());
+    this.renderer.fit();
+    // Preload the embedded display font; the menu re-renders every frame,
+    // so it picks up Baloo 2 automatically once loaded (Segoe UI fallback
+    // until then).
+    try { if (document.fonts) { document.fonts.load('800 108px "Baloo 2"'); document.fonts.load('700 22px "Baloo 2"'); } } catch (e) {}
+    requestAnimationFrame(t => this.frame(t));
+  }
+  // Host auto-starts the game the moment both players are connected.
+  startNetGame() {
+    this.settings.vsCPU = false;
+    this.game.applyCommand({ type: 'start' });
+    this.game.state.players[0].name = this.net.names[0] || 'Player 1';
+    this.game.state.players[1].name = this.net.names[1] || 'Player 2';
+    this.game.setMessage('Multiplayer - have fun!');
+    this.net.hidePanel();
+    this.net.lastSnapT = 0;  // force the initial snapshot out immediately
+    this.net.snapshot(this.game, 0);
+  }
+  // True when the locally-controlled human is the active player.
+  // Singleplayer / 2P-local (net.role null): both slots are local, so it
+  // reduces to "the current player is human" — behavior is unchanged.
+  isMyTurn() {
+    const s = this.game.state;
+    if (!s || s.players[s.current].isCPU) return false;
+    const r = this.net.role;
+    return !r || s.current === (r === 'client' ? 1 : 0);
+  }
+  frame(now) {
+    const dt = Math.min(0.1, (now - this.last) / 1000);
+    this.last = now;
+    try {
+    if (this.game.state) {
+      if (this.net.role === 'client') {
+        // THIN CLIENT: host snapshots drive authoritative state (no desync).
+        // Pump local aim state to the host at ~30 Hz, but ONLY on our own
+        // turn — sending during the host's turn would let stale aim/charge
+        // leak into the opponent's shot.
+        const st = this.game.state;
+        const ourTurn = st.current === 1 &&
+          (st.phase === 'aiming' || st.phase === 'breakAim' || st.phase === 'ballsInHand');
+        if (ourTurn && now - this.net.lastInputT >= 33) {
+          this.net.lastInputT = now;
+          this.net.send({ type: 'input', charging: this.input.mouse.charging,
+            angle: st.aim.angle, power: st.aim.power,
+            mouse: { x: this.input.mouse.x, y: this.input.mouse.y } });
+        }
+        // While balls are rolling, free-run the same fixed-substep physics
+        // the host runs (Game.tick is pure over state), so ball motion is
+        // smooth at native render rate between host snapshots; the 30 Hz
+        // snapshot replace stays authoritative and self-corrects drift.
+        // On our own aiming turn the same tick also integrates the local
+        // charge (ping-pong power) and held-key rotation in real time, so
+        // the power gauge advances at render rate instead of in 30 Hz
+        // snapshot steps; combined with Net.onMessage's own-turn aim
+        // restore, the snapshot no longer fights the local aim. Gated on
+        // active local aim input so an idle aiming turn still stays fully
+        // snapshot-driven.
+        // Third case: while the HOST is on its aim turn and actively charging,
+        // free-run the same Game.tick charge integration driven by net.hostInput
+        // (host's charge flag from the snapshot, chargeT aligned on the edge),
+        // so the mirrored power gauge / cue pullback advance at native render
+        // rate instead of in 30 Hz snapshot steps. hostInput.heldKeys is always
+        // empty (no local angle rotation); the snapshot replace stays
+        // authoritative and re-corrects the small integration offset.
+        const hostCharging = st.current === 0 &&
+          (st.phase === 'aiming' || st.phase === 'breakAim') &&
+          this.net.hostInput.mouse.charging;
+        if (st.phase === 'shooting') this.game.tick(dt, this.input);
+        else if (ourTurn && (this.input.mouse.charging || this.input.heldKeys.size > 0)) this.game.tick(dt, this.input);
+        else if (hostCharging) this.game.tick(dt, this.net.hostInput);
+      } else {
+        // Host (and singleplayer/CPU): full simulation. While the remote
+        // player is the active one, drive the tick from their input.
+        const remote = this.net.role === 'host' && this.game.state.current === 1;
+        if (remote) this.net.frame(this.game, dt);
+        this.game.applyCommand({ type: 'tick', dt, input: remote ? this.net.remoteInput : this.input });
+        this.net.snapshot(this.game, dt, this.input.mouse.charging);
+      }
+    }
+    const state = this.game.state;
+    const cursor = (state && state.phase === 'ballsInHand' && !state.players[state.current].isCPU)
+      ? 'none' : 'default';
+    if (cursor !== this.lastCursor) { this.renderer.cv.style.cursor = cursor; this.lastCursor = cursor; }  // write style only on change
+    // Mid-game 8/9-ball toggle button: visible only during a live network
+    // game; label follows the (snapshot-driven on the client) current mode.
+    const modeBtnKey = (this.net.ready() && state) ? state.mode : 'hidden';
+    if (modeBtnKey !== this.lastModeBtnKey) {
+      this.net.el.modeBtn.style.display = modeBtnKey === 'hidden' ? 'none' : 'block';
+      this.net.el.modeBtn.textContent = modeBtnKey === '8ball' ? 'SWITCH TO 9-BALL' : 'SWITCH TO 8-BALL';
+      this.lastModeBtnKey = modeBtnKey;
+    }
+    // Position: right edge at the table's outer wood-frame right edge (canvas x =
+    // CFG.TABLE_X + 1568 = 1744), vertical center on the power-meter track center
+    // (canvas y = 1000 + 20/2 = 1010). Canvas -> CSS mirrors Input.canvasPos():
+    // the letterboxed #cv's bounding rect already encodes fit()'s scale+offset.
+    // Only while visible (offsetWidth is 0 when display:none). Write style only on change.
+    const btn = this.net.el.modeBtn;
+    if (btn.style.display !== 'none') {
+      const cr = this.renderer.cv.getBoundingClientRect();
+      const bw = btn.offsetWidth, bh = btn.offsetHeight;
+      const tx = Math.round(cr.left + (1744 / 1920) * cr.width - bw);
+      const ty = Math.round(cr.top + (1010 / 1080) * cr.height - bh / 2);
+      if (tx !== this.lastModeBtnX || ty !== this.lastModeBtnY) {
+        btn.style.left = tx + 'px'; btn.style.top = ty + 'px';
+        this.lastModeBtnX = tx; this.lastModeBtnY = ty;
+      }
+    }
+    this.renderer.render();
+    // The client plays sfx exclusively from the host's snapshot events
+    // (pumpEvents(m.evts) in Net.onMessage); pumping its own free-run
+    // event log here too would double up the sound effects.
+    if (this.net.role !== 'client') this.pumpEvents();
+    this.game.events.length = 0;
+    } catch (err) { console.error(err); }  // one bad frame must never kill the rAF loop
+    requestAnimationFrame(t => this.frame(t));
+  }
+  // evs optional: the client plays the host's snapshot events (m.evts) instead
+  // of its own (always-empty) local log.
+  pumpEvents(evs) {
+    const sfx = this.sound;
+    let hits = 0;
+    for (const ev of (evs || this.game.events)) {
+      switch (ev.type) {
+        case 'cuehit': sfx.cueHit(ev.power); break;
+        case 'hit': if (hits++ < 3) sfx.hit(Math.min(1, ev.speed / 1200)); break;
+        case 'rail': sfx.cushion(); break;
+        case 'pocket': sfx.pocket(); break;
+        case 'place': sfx.click(); break;
+        case 'win': sfx.win(); break;
+      }
+    }
+  }
+}
+window.app = new App();  // debug/test hook
+</script>
+</body>
+</html>
