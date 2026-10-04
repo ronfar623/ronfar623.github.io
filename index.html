@@ -535,6 +535,73 @@
     text-shadow: 0 0 8px rgba(90, 209, 224, 0.35);
   }
 
+  /* ---------- Pastel Pool preview (CSS mock of the game) ---------- */
+  .project-preview.pool {
+    background: linear-gradient(160deg, #2b2140 0%, #1c1530 100%);
+  }
+
+  .mock-table {
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(160deg, #b8f0dd, #a7d8f0);
+    border: 6px solid #f4b8d4;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    position: relative;
+    animation: float 5s ease-in-out infinite;
+  }
+
+  .mock-table::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 7px;
+  }
+
+  .mock-table-label {
+    position: absolute;
+    z-index: 1;
+    top: 8px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #f4b8d4;
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a25b7a;
+  }
+
+  .mock-ball {
+    position: absolute;
+    width: 9%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    box-shadow: inset -3px -4px 6px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  .mock-ball::after {
+    content: "";
+    position: absolute;
+    top: 18%;
+    left: 24%;
+    width: 34%;
+    height: 34%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .mock-ball.cream   { background: #fff6e5; top: 24%; left: 17.5%; }
+  .mock-ball.pink    { background: #f8b4c8; top: 50%; left: 31.5%; }
+  .mock-ball.mint    { background: #a8e6cf; top: 34%; left: 45.5%; }
+  .mock-ball.lav     { background: #cbb8f0; top: 66%; left: 23.5%; }
+  .mock-ball.peach   { background: #ffd3a5; top: 60%; left: 61.5%; }
+  .mock-ball.sky     { background: #a3d5f7; top: 20%; left: 65.5%; }
+
   /* ---------- Footer ---------- */
   footer {
     margin-top: auto;
@@ -800,6 +867,41 @@
           <div class="mock-col">
             <div class="mock-card red"><span class="corner tl"><span class="rank">A</span><span class="suit">&#9829;</span></span><span class="pip">&#9829;</span><span class="corner br"><span class="rank">A</span><span class="suit">&#9829;</span></span></div>
           </div>
+        </div>
+      </div>
+    </a>
+
+    <a class="project-card" href="pastelpool.html" style="text-decoration:none;color:inherit;">
+      <div class="project-info">
+        <h2>Pastel Pool</h2>
+        <p>
+          A cozy multiplayer pool game drenched in soft pastels. Rack the
+          balls, angle your shots, and out-sink your friends before they sink
+          you. Turn-based, friendly, and immensely satisfying.
+        </p>
+        <div class="tags">
+          <span class="tag highlight">JavaScript</span>
+          <span class="tag">HTML</span>
+          <span class="tag">CSS</span>
+          <span class="tag">Multiplayer</span>
+          <span class="tag">Game</span>
+        </div>
+        <div class="project-actions">
+          <span class="btn btn-primary">Play Game
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+          <span class="btn btn-secondary" onclick="event.stopPropagation(); window.open('https://github.com/ronfar623/ronfar623.github.io', '_blank');">Source</span>
+        </div>
+      </div>
+      <div class="project-preview pool" aria-hidden="true">
+        <div class="mock-table">
+          <div class="mock-table-label">Multiplayer</div>
+          <div class="mock-ball cream"></div>
+          <div class="mock-ball pink"></div>
+          <div class="mock-ball mint"></div>
+          <div class="mock-ball lav"></div>
+          <div class="mock-ball peach"></div>
+          <div class="mock-ball sky"></div>
         </div>
       </div>
     </a>
